@@ -1,37 +1,29 @@
 package com.project.Tadafur_api.domain.strategy.entity;
 
-import com.project.Tadafur_api.shared.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "strategy")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class Strategy extends BaseEntity {
+public class Strategy {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @Size(max = 255)
-    @Column(name = "arabic_name", nullable = false)
+    @Column(name = "arabic_name")
     private String arabicName;
 
-    @NotNull
-    @Size(max = 255)
-    @Column(name = "english_name", nullable = false)
+    @Column(name = "english_name")
     private String englishName;
 
     @Lob
@@ -46,8 +38,7 @@ public class Strategy extends BaseEntity {
     @Column(name = "vision")
     private String vision;
 
-    @NotNull
-    @Column(name = "owner_id", nullable = false)
+    @Column(name = "owner_id")
     private Long ownerId;
 
     @Column(name = "timeline_from")
@@ -68,7 +59,27 @@ public class Strategy extends BaseEntity {
     @Column(name = "budget_sources")
     private String budgetSources; // JSON array as string
 
-    // Helper methods
+    // Audit fields
+    @Column(name = "created_by")
+    private String createdBy;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "last_modified_by")
+    private String lastModifiedBy;
+
+    @Column(name = "last_modified_at")
+    private LocalDateTime lastModifiedAt;
+
+    @Column(name = "status_code")
+    private String statusCode;
+
+    // Helper methods for dashboards
+    public boolean isActive() {
+        return "ACTIVE".equals(statusCode);
+    }
+
     public boolean isWithinTimeline(LocalDate date) {
         if (timelineFrom == null || timelineTo == null || date == null) {
             return false;
@@ -85,5 +96,19 @@ public class Strategy extends BaseEntity {
         }
         return calculatedTotalPayments.divide(plannedTotalBudget, 4, BigDecimal.ROUND_HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
+    }
+
+    public String getTimelineStatus() {
+        LocalDate now = LocalDate.now();
+        if (timelineFrom == null || timelineTo == null) {
+            return "UNDEFINED";
+        }
+        if (now.isBefore(timelineFrom)) {
+            return "UPCOMING";
+        } else if (now.isAfter(timelineTo)) {
+            return "COMPLETED";
+        } else {
+            return "ACTIVE";
+        }
     }
 }

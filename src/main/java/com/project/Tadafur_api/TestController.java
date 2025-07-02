@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;  // ✅ ADDED THIS IMPORT
+import java.sql.ResultSet;         // ✅ ADDED THIS IMPORT
 
 @RestController
 @RequestMapping("/api/test")
@@ -65,6 +67,56 @@ public class TestController {
 
         } catch (Exception e) {
             return "❌ Error checking tables: " + e.getMessage();
+        }
+    }
+
+    // ✅ NEW METHOD: Check strategy data
+    @GetMapping("/strategy-data")
+    public String checkStrategyData() {
+        try {
+            Connection connection = dataSource.getConnection();
+
+            // Check if strategy table exists and has data
+            String query = "SELECT COUNT(*) as total FROM \"2172_OM\".strategy";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+
+            int totalStrategies = 0;
+            if (rs.next()) {
+                totalStrategies = rs.getInt("total");
+            }
+
+            // Check a sample strategy
+            String sampleQuery = "SELECT id, primary_name, secondary_name  FROM \"2172_OM\".strategy LIMIT 3";
+            PreparedStatement sampleStmt = connection.prepareStatement(sampleQuery);
+            ResultSet sampleRs = sampleStmt.executeQuery();
+
+            StringBuilder result = new StringBuilder();
+            result.append("✅ Strategy Table Check:<br>");
+            result.append("Total Strategies: ").append(totalStrategies).append("<br><br>");
+
+            if (totalStrategies > 0) {
+                result.append("Sample Strategies:<br>");
+                while (sampleRs.next()) {
+                    result.append("ID: ").append(sampleRs.getLong("id"))
+                            .append(", Arabic: ").append(sampleRs.getString("primary_name"))
+                            .append(", English: ").append(sampleRs.getString("secondary_name"))
+                            .append("<br>");
+                }
+            } else {
+                result.append("❌ No strategy data found in database<br>");
+                result.append("💡 You may need to add some test data first");
+            }
+
+            rs.close();
+            stmt.close();
+            sampleRs.close();
+            sampleStmt.close();
+            connection.close();
+            return result.toString();
+
+        } catch (Exception e) {
+            return "❌ Error checking strategy data: " + e.getMessage();
         }
     }
 }

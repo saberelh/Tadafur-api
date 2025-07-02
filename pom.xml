@@ -50,7 +50,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- NEW: CRITICAL Missing Dependencies -->
+        <!-- NEW: CRITICAL for Dashboard APIs -->
 
         <!-- Validation for API input validation -->
         <dependency>
@@ -97,7 +97,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Lombok for reducing boilerplate (IMPORTANT) -->
+        <!-- Lombok for reducing boilerplate -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
