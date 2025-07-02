@@ -17,9 +17,6 @@ import java.util.Arrays;
 @EnableCaching
 public class ApplicationConfig {
 
-    /**
-     * OpenAPI 3 Configuration for Swagger Documentation
-     */
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
@@ -36,42 +33,26 @@ public class ApplicationConfig {
                                 .url("https://www.apache.org/licenses/LICENSE-2.0")));
     }
 
-    /**
-     * CORS Configuration for Dashboard Frontend
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Allow dashboard frontend origins
         configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:3000",     // React dashboard
-                "http://localhost:4200",     // Angular dashboard
-                "http://localhost:8081",     // Alternative port
-                "https://dashboard.tadafur.com",  // Production dashboard
-                "https://*.tadafur.com"      // All Tadafur subdomains
+                "http://localhost:3000",
+                "http://localhost:4200",
+                "http://localhost:8081",
+                "https://dashboard.tadafur.com",
+                "https://*.tadafur.com"
         ));
-
-        // Allow only READ operations (no POST, PUT, DELETE)
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "OPTIONS"  // Only GET and OPTIONS for READ-only API
-        ));
-
-        // Allow headers needed for dashboard
+        configuration.setAllowedMethods(Arrays.asList("GET", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization", "Content-Type", "X-Requested-With",
                 "Accept", "Origin", "Cache-Control"
         ));
-
-        // Allow credentials for authenticated requests
         configuration.setAllowCredentials(true);
-
-        // Cache preflight requests for 1 hour
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
-
         return source;
     }
 }

@@ -52,8 +52,4 @@ public abstract class BaseEntity {
     public boolean isActive() {
         return "ACTIVE".equals(statusCode);
     }
-
-    public boolean isDeleted() {
-        return "DELETED".equals(statusCode);
-    }
 }

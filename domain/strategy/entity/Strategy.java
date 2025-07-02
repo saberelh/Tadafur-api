@@ -2,8 +2,6 @@ package com.project.Tadafur_api.domain.strategy.entity;
 
 import com.project.Tadafur_api.shared.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,7 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "strategy")
@@ -25,29 +22,22 @@ public class Strategy extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @Size(max = 255)
-    @Column(name = "primary_name", nullable = false)
+    @Column(name = "primary_name")
     private String primaryName;
 
-    @Size(max = 255)
     @Column(name = "secondary_name")
     private String secondaryName;
 
-    @Lob
-    @Column(name = "primary_description")
+    @Column(name = "primary_description", columnDefinition = "TEXT")
     private String primaryDescription;
 
-    @Lob
-    @Column(name = "secondary_description")
+    @Column(name = "secondary_description", columnDefinition = "TEXT")
     private String secondaryDescription;
 
-    @Lob
-    @Column(name = "vision")
+    @Column(name = "vision", columnDefinition = "TEXT")
     private String vision;
 
-    @NotNull
-    @Column(name = "owner_id", nullable = false)
+    @Column(name = "owner_id")
     private Long ownerId;
 
     @Column(name = "timeline_from")
@@ -66,18 +56,17 @@ public class Strategy extends BaseEntity {
     private BigDecimal calculatedTotalPayments;
 
     @Column(name = "budget_sources")
-    private String budgetSources; // JSON array as string
-
-    // Relationships
-    @OneToMany(mappedBy = "parentId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Perspective> perspectives;
+    private String budgetSources;
 
     // Helper methods
-    public boolean isWithinTimeline(LocalDate date) {
-        if (timelineFrom == null || timelineTo == null || date == null) {
-            return false;
-        }
-        return !date.isBefore(timelineFrom) && !date.isAfter(timelineTo);
+    public String getDisplayName() {
+        return secondaryName != null && !secondaryName.trim().isEmpty() ?
+                secondaryName : primaryName;
+    }
+
+    public String getDisplayDescription() {
+        return secondaryDescription != null && !secondaryDescription.trim().isEmpty() ?
+                secondaryDescription : primaryDescription;
     }
 
     public BigDecimal getBudgetUtilization() {
@@ -91,12 +80,10 @@ public class Strategy extends BaseEntity {
                 .multiply(BigDecimal.valueOf(100));
     }
 
-    public String getDisplayName() {
-        return secondaryName != null && !secondaryName.trim().isEmpty() ? secondaryName : primaryName;
-    }
-
-    public String getDisplayDescription() {
-        return secondaryDescription != null && !secondaryDescription.trim().isEmpty() ?
-                secondaryDescription : primaryDescription;
+    public boolean isWithinTimeline(LocalDate date) {
+        if (timelineFrom == null || timelineTo == null || date == null) {
+            return false;
+        }
+        return !date.isBefore(timelineFrom) && !date.isAfter(timelineTo);
     }
 }

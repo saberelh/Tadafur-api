@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
@@ -24,7 +23,6 @@ public class StrategyResponseDto {
     private String secondaryDescription;
     private String vision;
     private Long ownerId;
-    private String ownerName;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate timelineFrom;
@@ -36,7 +34,6 @@ public class StrategyResponseDto {
     private BigDecimal calculatedTotalBudget;
     private BigDecimal calculatedTotalPayments;
     private BigDecimal budgetUtilization;
-    private List<Integer> budgetSources;
 
     // Audit fields
     private String createdBy;
@@ -51,20 +48,14 @@ public class StrategyResponseDto {
 
     private String statusCode;
 
-    // Aggregated data
-    private Integer perspectiveCount;
-    private Integer totalGoalCount;
-    private Integer totalProjectCount;
-    private BigDecimal overallProgress;
-
     // Timeline status
     private Boolean isActive;
-    private Long daysRemaining;
     private String timelineStatus;
 
     // Display helpers
     public String getDisplayName() {
-        return secondaryName != null && !secondaryName.trim().isEmpty() ? secondaryName : primaryName;
+        return secondaryName != null && !secondaryName.trim().isEmpty() ?
+                secondaryName : primaryName;
     }
 
     public String getDisplayDescription() {
