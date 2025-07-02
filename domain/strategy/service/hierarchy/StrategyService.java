@@ -1,19 +1,23 @@
-package com.project.Tadafur_api.domain.strategy.service;
+package com.project.Tadafur_api.domain.strategy.service.hierarchy;
 
+import com.project.Tadafur_api.domain.strategy.dto.response.StrategyResponseDto;
 import com.project.Tadafur_api.domain.strategy.entity.Strategy;
 import com.project.Tadafur_api.domain.strategy.repository.StrategyRepository;
+import com.project.Tadafur_api.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.*;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,270 +27,201 @@ public class StrategyService {
 
     private final StrategyRepository strategyRepository;
 
-    // ===== BASIC READ OPERATIONS =====
+    private static final String ACTIVE_STATUS = "ACTIVE";
 
-    public List<Strategy> getAllActiveStrategies() {
-        log.info("Fetching all active strategies");
-        return strategyRepository.findByStatusCodeOrderByCreatedAtDesc("ACTIVE");
+    @Cacheable(value = "strategies", key = "#pageable.pageNumber + '_' + #pageable.pageSize")
+    public Page<StrategyResponseDto> getAllActiveStrategies(Pageable pageable) {
+        log.debug("Fetching active strategies - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<Strategy> strategies = strategyRepository.findByStatusCodeOrderByCreatedAtDesc(ACTIVE_STATUS, pageable);
+        return strategies.map(this::convertToResponseDto);
     }
 
-    public Page<Strategy> getAllActiveStrategies(int page, int size) {
-        log.info("Fetching active strategies - page: {}, size: {}", page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        return strategyRepository.findByStatusCodeOrderByCreatedAtDesc("ACTIVE", pageable);
+    @Cacheable(value = "strategy-details", key = "#id")
+    public StrategyResponseDto getStrategyById(Long id) {
+        log.debug("Fetching strategy by ID: {}", id);
+
+        Strategy strategy = strategyRepository.findByIdAndStatusCode(id, ACTIVE_STATUS)
+                .orElseThrow(() -> new ResourceNotFoundException("Strategy", "id", id));
+
+        return convertToResponseDto(strategy);
     }
 
-    public Optional<Strategy> getStrategyById(Long id) {
-        log.info("Fetching strategy by id: {}", id);
-        return strategyRepository.findByIdAndStatusCode(id, "ACTIVE");
+    public List<StrategyResponseDto> getStrategiesByOwner(Long ownerId) {
+        log.debug("Fetching strategies for owner: {}", ownerId);
+
+        List<Strategy> strategies = strategyRepository.findByOwnerIdAndStatusCodeOrderByCreatedAtDesc(ownerId, ACTIVE_STATUS);
+        return strategies.stream()
+                .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
     }
 
-    // ===== DASHBOARD ANALYTICS =====
+    public Page<StrategyResponseDto> searchStrategies(String query, Pageable pageable) {
+        log.debug("Searching strategies with query: '{}', page: {}, size: {}", query, pageable.getPageNumber(), pageable.getPageSize());
 
-    @Cacheable("strategy-summary")
-    public Map<String, Object> getExecutiveSummary() {
-        log.info("Generating executive summary");
-
-        Map<String, Object> summary = new HashMap<>();
-
-        // Basic statistics
-        Map<String, Object> basicStats = strategyRepository.getStrategySummary();
-        summary.put("basicStatistics", basicStats);
-
-        // Budget utilization
-        Map<String, Object> budgetStats = strategyRepository.getBudgetUtilizationSummary();
-        summary.put("budgetUtilization", budgetStats);
-
-        // Timeline distribution
-        Map<String, Object> timelineStats = strategyRepository.getTimelineStatusDistribution();
-        summary.put("timelineDistribution", timelineStats);
-
-        // Recent activity
-        List<Strategy> recentStrategies = strategyRepository.findRecentStrategies(5);
-        summary.put("recentStrategies", recentStrategies);
-
-        // Top strategies by budget
-        List<Strategy> topStrategies = strategyRepository.findTopStrategiesByBudget(5);
-        summary.put("topStrategiesByBudget", topStrategies);
-
-        return summary;
+        Page<Strategy> strategies = strategyRepository.searchStrategies(query, ACTIVE_STATUS, pageable);
+        return strategies.map(this::convertToResponseDto);
     }
 
-    @Cacheable("financial-dashboard")
-    public Map<String, Object> getFinancialDashboard() {
-        log.info("Generating financial dashboard");
+    public List<StrategyResponseDto> getActiveStrategiesOnDate(LocalDate date) {
+        log.debug("Fetching strategies active on date: {}", date);
 
-        Map<String, Object> dashboard = new HashMap<>();
-
-        // Overall financial summary
-        Map<String, Object> summary = strategyRepository.getStrategySummary();
-        dashboard.put("summary", summary);
-
-        // Budget utilization details
-        Map<String, Object> utilization = strategyRepository.getBudgetUtilizationSummary();
-        dashboard.put("utilization", utilization);
-
-        // Budget range distribution
-        dashboard.put("budgetRanges", getBudgetRangeDistribution());
-
-        // Authority spending
-        List<Map<String, Object>> authoritySpending = strategyRepository.getAuthorityParticipation();
-        dashboard.put("authoritySpending", authoritySpending);
-
-        return dashboard;
+        List<Strategy> strategies = strategyRepository.findActiveStrategiesOnDate(date, ACTIVE_STATUS);
+        return strategies.stream()
+                .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
     }
 
-    @Cacheable("timeline-dashboard")
-    public Map<String, Object> getTimelineDashboard() {
-        log.info("Generating timeline dashboard");
+    public List<StrategyResponseDto> getStrategiesByTimelineRange(LocalDate fromDate, LocalDate toDate) {
+        log.debug("Fetching strategies within timeline range: {} to {}", fromDate, toDate);
 
-        Map<String, Object> dashboard = new HashMap<>();
+        List<Strategy> strategies = strategyRepository.findStrategiesByTimelineRange(fromDate, toDate, ACTIVE_STATUS);
+        return strategies.stream()
+                .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
+    }
 
+    public List<StrategyResponseDto> getStrategiesByYear(int year) {
+        log.debug("Fetching strategies for year: {}", year);
+
+        List<Strategy> strategies = strategyRepository.findStrategiesByYear(year, ACTIVE_STATUS);
+        return strategies.stream()
+                .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<StrategyResponseDto> getRecentStrategies(int limit) {
+        log.debug("Fetching recent strategies, limit: {}", limit);
+
+        List<Strategy> strategies = strategyRepository.findRecentStrategies(ACTIVE_STATUS, limit);
+        return strategies.stream()
+                .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Cacheable(value = "strategy-summary")
+    public Map<String, Object> getStrategySummary() {
+        log.debug("Fetching strategy summary");
+
+        return strategyRepository.getStrategySummary(ACTIVE_STATUS);
+    }
+
+    public Page<StrategyResponseDto> findByMultiLanguageNames(String primaryName, String secondaryName, Pageable pageable) {
+        log.debug("Searching strategies by names - primary: '{}', secondary: '{}'", primaryName, secondaryName);
+
+        Page<Strategy> strategies = strategyRepository.findByMultiLanguageNames(primaryName, secondaryName, ACTIVE_STATUS, pageable);
+        return strategies.map(this::convertToResponseDto);
+    }
+
+    public List<StrategyResponseDto> getStrategiesByBudgetRange(BigDecimal minBudget, BigDecimal maxBudget) {
+        log.debug("Fetching strategies by budget range: {} to {}", minBudget, maxBudget);
+
+        List<Strategy> strategies = strategyRepository.findStrategiesByBudgetRange(minBudget, maxBudget, ACTIVE_STATUS);
+        return strategies.stream()
+                .map(this::convertToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public long countStrategiesByOwner(Long ownerId) {
+        log.debug("Counting strategies for owner: {}", ownerId);
+
+        return strategyRepository.countByOwnerIdAndStatusCode(ownerId, ACTIVE_STATUS);
+    }
+
+    public long countActiveStrategies() {
+        log.debug("Counting all active strategies");
+
+        return strategyRepository.countByStatusCode(ACTIVE_STATUS);
+    }
+
+    // Helper method to convert Strategy entity to DTO
+    private StrategyResponseDto convertToResponseDto(Strategy strategy) {
+        StrategyResponseDto dto = StrategyResponseDto.builder()
+                .id(strategy.getId())
+                .primaryName(strategy.getPrimaryName())
+                .secondaryName(strategy.getSecondaryName())
+                .primaryDescription(strategy.getPrimaryDescription())
+                .secondaryDescription(strategy.getSecondaryDescription())
+                .vision(strategy.getVision())
+                .ownerId(strategy.getOwnerId())
+                .timelineFrom(strategy.getTimelineFrom())
+                .timelineTo(strategy.getTimelineTo())
+                .plannedTotalBudget(strategy.getPlannedTotalBudget())
+                .calculatedTotalBudget(strategy.getCalculatedTotalBudget())
+                .calculatedTotalPayments(strategy.getCalculatedTotalPayments())
+                .budgetUtilization(strategy.getBudgetUtilization())
+                .createdBy(strategy.getCreatedBy())
+                .createdAt(strategy.getCreatedAt())
+                .lastModifiedBy(strategy.getLastModifiedBy())
+                .lastModifiedAt(strategy.getLastModifiedAt())
+                .statusCode(strategy.getStatusCode())
+                .build();
+
+        // Calculate timeline status
+        enrichWithTimelineStatus(dto, strategy);
+
+        // Calculate aggregated data
+        enrichWithAggregatedData(dto, strategy);
+
+        return dto;
+    }
+
+    private void enrichWithTimelineStatus(StrategyResponseDto dto, Strategy strategy) {
         LocalDate now = LocalDate.now();
 
-        // Current active strategies
-        List<Strategy> activeToday = strategyRepository.findActiveStrategiesOnDate(now);
-        dashboard.put("activeToday", activeToday);
+        if (strategy.getTimelineFrom() != null && strategy.getTimelineTo() != null) {
+            boolean isActive = strategy.isWithinTimeline(now);
+            dto.setIsActive(isActive);
 
-        // Timeline status distribution
-        Map<String, Object> statusDistribution = strategyRepository.getTimelineStatusDistribution();
-        dashboard.put("statusDistribution", statusDistribution);
-
-        // Upcoming strategies (next 3 months)
-        LocalDate threeMonthsLater = now.plusMonths(3);
-        List<Strategy> upcomingStrategies = strategyRepository.findStrategiesByTimelineRange(now, threeMonthsLater);
-        dashboard.put("upcomingStrategies", upcomingStrategies);
-
-        // Monthly creation trend
-        List<Object[]> creationTrend = strategyRepository.getMonthlyCreationTrend();
-        dashboard.put("creationTrend", formatMonthlyTrend(creationTrend));
-
-        return dashboard;
-    }
-
-    // ===== SEARCH AND FILTERING =====
-
-    public Page<Strategy> searchStrategies(String query, int page, int size) {
-        log.info("Searching strategies with query: '{}' - page: {}, size: {}", query, page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        return strategyRepository.searchStrategies(query, pageable);
-    }
-
-    public List<Strategy> getStrategiesByOwner(Long ownerId) {
-        log.info("Fetching strategies by owner: {}", ownerId);
-        return strategyRepository.findByOwnerId(ownerId);
-    }
-
-    public Page<Strategy> getStrategiesByOwner(Long ownerId, int page, int size) {
-        log.info("Fetching strategies by owner: {} - page: {}, size: {}", ownerId, page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        return strategyRepository.findByOwnerIdAndStatusCodeOrderByCreatedAtDesc(ownerId, "ACTIVE", pageable);
-    }
-
-    // ===== TEMPORAL QUERIES =====
-
-    public List<Strategy> getStrategiesByYear(int year) {
-        log.info("Fetching strategies by year: {}", year);
-        return strategyRepository.findStrategiesByYear(year);
-    }
-
-    public List<Strategy> getStrategiesByTimelineRange(LocalDate fromDate, LocalDate toDate) {
-        log.info("Fetching strategies by timeline range: {} to {}", fromDate, toDate);
-        return strategyRepository.findStrategiesByTimelineRange(fromDate, toDate);
-    }
-
-    public List<Strategy> getActiveStrategiesOnDate(LocalDate date) {
-        log.info("Fetching active strategies on date: {}", date);
-        return strategyRepository.findActiveStrategiesOnDate(date);
-    }
-
-    // ===== FINANCIAL QUERIES =====
-
-    public List<Strategy> getStrategiesByBudgetRange(BigDecimal minBudget, BigDecimal maxBudget) {
-        log.info("Fetching strategies by budget range: {} to {}", minBudget, maxBudget);
-        return strategyRepository.findStrategiesByBudgetRange(minBudget, maxBudget);
-    }
-
-    public List<Strategy> getTopStrategiesByBudget(int limit) {
-        log.info("Fetching top {} strategies by budget", limit);
-        return strategyRepository.findTopStrategiesByBudget(limit);
-    }
-
-    // ===== ANALYTICS HELPERS =====
-
-    @Cacheable("authority-participation")
-    public List<Map<String, Object>> getAuthorityParticipation() {
-        log.info("Fetching authority participation data");
-        return strategyRepository.getAuthorityParticipation();
-    }
-
-    public Map<String, Object> getStrategyHealth(Long strategyId) {
-        log.info("Calculating strategy health for id: {}", strategyId);
-
-        Optional<Strategy> strategyOpt = getStrategyById(strategyId);
-        if (strategyOpt.isEmpty()) {
-            return Map.of("error", "Strategy not found");
-        }
-
-        Strategy strategy = strategyOpt.get();
-        Map<String, Object> health = new HashMap<>();
-
-        // Timeline health
-        health.put("timelineStatus", strategy.getTimelineStatus());
-        health.put("isOnTime", !"OVERDUE".equals(strategy.getTimelineStatus()));
-
-        // Budget health
-        BigDecimal utilization = strategy.getBudgetUtilization();
-        health.put("budgetUtilization", utilization);
-        health.put("budgetHealth", calculateBudgetHealth(utilization));
-
-        // Overall health score (0-100)
-        health.put("overallScore", calculateOverallHealthScore(strategy));
-
-        return health;
-    }
-
-    // ===== PRIVATE HELPER METHODS =====
-
-    private Map<String, Integer> getBudgetRangeDistribution() {
-        List<Strategy> strategies = getAllActiveStrategies();
-        Map<String, Integer> distribution = new HashMap<>();
-
-        distribution.put("under1M", 0);
-        distribution.put("1M_to_5M", 0);
-        distribution.put("5M_to_10M", 0);
-        distribution.put("over10M", 0);
-
-        for (Strategy strategy : strategies) {
-            BigDecimal budget = strategy.getPlannedTotalBudget();
-            if (budget == null) continue;
-
-            if (budget.compareTo(BigDecimal.valueOf(1_000_000)) < 0) {
-                distribution.merge("under1M", 1, Integer::sum);
-            } else if (budget.compareTo(BigDecimal.valueOf(5_000_000)) < 0) {
-                distribution.merge("1M_to_5M", 1, Integer::sum);
-            } else if (budget.compareTo(BigDecimal.valueOf(10_000_000)) < 0) {
-                distribution.merge("5M_to_10M", 1, Integer::sum);
+            if (isActive) {
+                long daysRemaining = ChronoUnit.DAYS.between(now, strategy.getTimelineTo());
+                dto.setDaysRemaining(daysRemaining);
+                dto.setTimelineStatus(daysRemaining > 30 ? "ON_TRACK" : "APPROACHING_DEADLINE");
+            } else if (now.isBefore(strategy.getTimelineFrom())) {
+                dto.setTimelineStatus("FUTURE");
+                dto.setDaysRemaining(ChronoUnit.DAYS.between(now, strategy.getTimelineFrom()));
             } else {
-                distribution.merge("over10M", 1, Integer::sum);
+                dto.setTimelineStatus("COMPLETED");
+                dto.setDaysRemaining(0L);
             }
-        }
-
-        return distribution;
-    }
-
-    private List<Map<String, Object>> formatMonthlyTrend(List<Object[]> rawData) {
-        List<Map<String, Object>> trend = new ArrayList<>();
-
-        for (Object[] row : rawData) {
-            Map<String, Object> monthData = new HashMap<>();
-            monthData.put("month", row[0]); // Date
-            monthData.put("count", row[1]); // Count
-            trend.add(monthData);
-        }
-
-        return trend;
-    }
-
-    private String calculateBudgetHealth(BigDecimal utilization) {
-        if (utilization == null) return "UNKNOWN";
-
-        if (utilization.compareTo(BigDecimal.valueOf(110)) > 0) {
-            return "OVER_BUDGET";
-        } else if (utilization.compareTo(BigDecimal.valueOf(90)) > 0) {
-            return "ON_TARGET";
-        } else if (utilization.compareTo(BigDecimal.valueOf(50)) > 0) {
-            return "UNDER_UTILIZED";
         } else {
-            return "MINIMAL_SPEND";
+            dto.setIsActive(false);
+            dto.setTimelineStatus("NO_TIMELINE");
+            dto.setDaysRemaining(null);
         }
     }
 
-    private int calculateOverallHealthScore(Strategy strategy) {
-        int score = 50; // Base score
+    private void enrichWithAggregatedData(StrategyResponseDto dto, Strategy strategy) {
+        // These would require additional repository calls
+        // For now, setting default values - implement as needed
+        dto.setPerspectiveCount(0);
+        dto.setTotalGoalCount(0);
+        dto.setTotalProjectCount(0);
+        dto.setOverallProgress(BigDecimal.ZERO);
 
-        // Timeline factor (30 points)
-        String timelineStatus = strategy.getTimelineStatus();
-        switch (timelineStatus) {
-            case "ACTIVE" -> score += 30;
-            case "UPCOMING" -> score += 25;
-            case "COMPLETED" -> score += 20;
-            default -> score += 10;
+        // TODO: Implement these with additional queries:
+        // dto.setPerspectiveCount(perspectiveRepository.countByStrategyId(strategy.getId()));
+        // dto.setTotalGoalCount(goalRepository.countByStrategyIdRecursive(strategy.getId()));
+        // dto.setTotalProjectCount(projectRepository.countByStrategyIdRecursive(strategy.getId()));
+        // dto.setOverallProgress(calculateOverallProgress(strategy.getId()));
+    }
+
+    // Additional helper methods for future implementation
+    private BigDecimal calculateOverallProgress(Long strategyId) {
+        // Implement progress calculation logic
+        // This would involve aggregating progress from all levels of the hierarchy
+        return BigDecimal.ZERO;
+    }
+
+    // Validation methods
+    public boolean validateStrategyTimeline(LocalDate timelineFrom, LocalDate timelineTo) {
+        if (timelineFrom == null || timelineTo == null) {
+            return false;
         }
+        return !timelineFrom.isAfter(timelineTo);
+    }
 
-        // Budget utilization factor (20 points)
-        BigDecimal utilization = strategy.getBudgetUtilization();
-        if (utilization != null) {
-            if (utilization.compareTo(BigDecimal.valueOf(80)) >= 0 &&
-                    utilization.compareTo(BigDecimal.valueOf(100)) <= 0) {
-                score += 20; // Optimal range
-            } else if (utilization.compareTo(BigDecimal.valueOf(100)) > 0) {
-                score += 10; // Over budget
-            } else {
-                score += 15; // Under utilized but still positive
-            }
-        }
-
-        return Math.min(100, Math.max(0, score));
+    public boolean validateBudgetAmount(BigDecimal amount) {
+        return amount != null && amount.compareTo(BigDecimal.ZERO) >= 0;
     }
 }

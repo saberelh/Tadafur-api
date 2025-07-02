@@ -1,254 +1,235 @@
 package com.project.Tadafur_api.domain.strategy.controller.hierarchy;
 
-import com.project.Tadafur_api.domain.strategy.entity.Strategy;
-import com.project.Tadafur_api.domain.strategy.service.StrategyService;
+import com.project.Tadafur_api.domain.strategy.dto.response.StrategyResponseDto;
+import com.project.Tadafur_api.domain.strategy.service.hierarchy.StrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/strategy")
+@RequestMapping("/api/strategy/hierarchy/strategies")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Strategy APIs", description = "READ-ONLY Strategic Planning APIs for Dashboard & Analytics")
+@Validated
+@Tag(name = "Strategy Management", description = "Strategic Planning Hierarchy - Strategy Level Operations")
 public class StrategyController {
 
     private final StrategyService strategyService;
 
-    // ===== BASIC STRATEGY OPERATIONS =====
+    @GetMapping
+    @Operation(
+            summary = "Get all active strategies",
+            description = "Retrieves a paginated list of all active strategies with basic information and aggregated metrics"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved strategies")
+    public ResponseEntity<Page<StrategyResponseDto>> getAllStrategies(
+            @PageableDefault(size = 20) Pageable pageable) {
 
-    @GetMapping("/strategies")
-    @Operation(summary = "Get All Strategies", description = "Retrieve all active strategies with pagination")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Strategies retrieved successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid pagination parameters")
-    })
-    public ResponseEntity<Page<Strategy>> getAllStrategies(
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "20") int size) {
+        log.info("REST request to get all strategies - page: {}, size: {}",
+                pageable.getPageNumber(), pageable.getPageSize());
 
-        log.info("GET /api/strategy/strategies - page: {}, size: {}", page, size);
-        Page<Strategy> strategies = strategyService.getAllActiveStrategies(page, size);
+        Page<StrategyResponseDto> strategies = strategyService.getAllActiveStrategies(pageable);
+
+        log.info("Retrieved {} strategies out of {} total",
+                strategies.getNumberOfElements(), strategies.getTotalElements());
+
         return ResponseEntity.ok(strategies);
     }
 
-    @GetMapping("/strategies/{id}")
-    @Operation(summary = "Get Strategy by ID", description = "Retrieve a specific strategy by its ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Strategy found"),
-            @ApiResponse(responseCode = "404", description = "Strategy not found")
-    })
-    public ResponseEntity<Strategy> getStrategyById(
-            @Parameter(description = "Strategy ID")
-            @PathVariable Long id) {
+    @GetMapping("/{id}")
+    @Operation(
+            summary = "Get strategy by ID",
+            description = "Retrieves detailed information about a specific strategy including timeline status and budget metrics"
+    )
+    @ApiResponse(responseCode = "200", description = "Strategy found and returned")
+    @ApiResponse(responseCode = "404", description = "Strategy not found")
+    public ResponseEntity<StrategyResponseDto> getStrategyById(
+            @Parameter(description = "Strategy ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
 
-        log.info("GET /api/strategy/strategies/{}", id);
-        return strategyService.getStrategyById(id)
-                .map(strategy -> ResponseEntity.ok(strategy))
-                .orElse(ResponseEntity.notFound().build());
+        log.info("REST request to get strategy by ID: {}", id);
+
+        StrategyResponseDto strategy = strategyService.getStrategyById(id);
+
+        log.info("Successfully retrieved strategy: {} ({})",
+                strategy.getDisplayName(), strategy.getId());
+
+        return ResponseEntity.ok(strategy);
     }
 
-    // ===== DASHBOARD ANALYTICS ENDPOINTS =====
+    @GetMapping("/owner/{ownerId}")
+    @Operation(
+            summary = "Get strategies by owner",
+            description = "Retrieves all strategies owned by a specific authority/organization"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved strategies for owner")
+    public ResponseEntity<List<StrategyResponseDto>> getStrategiesByOwner(
+            @Parameter(description = "Owner ID", required = true)
+            @PathVariable @NotNull @Min(1) Long ownerId) {
 
-    @GetMapping("/dashboard/executive")
-    @Operation(summary = "Executive Dashboard", description = "Comprehensive executive summary and key metrics")
-    @ApiResponse(responseCode = "200", description = "Executive dashboard data retrieved successfully")
-    public ResponseEntity<Map<String, Object>> getExecutiveDashboard() {
-        log.info("GET /api/strategy/dashboard/executive");
-        Map<String, Object> dashboard = strategyService.getExecutiveSummary();
-        return ResponseEntity.ok(dashboard);
-    }
+        log.info("REST request to get strategies by owner: {}", ownerId);
 
-    @GetMapping("/dashboard/financial")
-    @Operation(summary = "Financial Dashboard", description = "Financial analytics and budget insights")
-    @ApiResponse(responseCode = "200", description = "Financial dashboard data retrieved successfully")
-    public ResponseEntity<Map<String, Object>> getFinancialDashboard() {
-        log.info("GET /api/strategy/dashboard/financial");
-        Map<String, Object> dashboard = strategyService.getFinancialDashboard();
-        return ResponseEntity.ok(dashboard);
-    }
+        List<StrategyResponseDto> strategies = strategyService.getStrategiesByOwner(ownerId);
 
-    @GetMapping("/dashboard/timeline")
-    @Operation(summary = "Timeline Dashboard", description = "Timeline analytics and scheduling insights")
-    @ApiResponse(responseCode = "200", description = "Timeline dashboard data retrieved successfully")
-    public ResponseEntity<Map<String, Object>> getTimelineDashboard() {
-        log.info("GET /api/strategy/dashboard/timeline");
-        Map<String, Object> dashboard = strategyService.getTimelineDashboard();
-        return ResponseEntity.ok(dashboard);
-    }
+        log.info("Retrieved {} strategies for owner: {}", strategies.size(), ownerId);
 
-    @GetMapping("/strategies/{id}/health")
-    @Operation(summary = "Strategy Health Check", description = "Comprehensive health assessment for a strategy")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Health data retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Strategy not found")
-    })
-    public ResponseEntity<Map<String, Object>> getStrategyHealth(
-            @Parameter(description = "Strategy ID")
-            @PathVariable Long id) {
-
-        log.info("GET /api/strategy/strategies/{}/health", id);
-        Map<String, Object> health = strategyService.getStrategyHealth(id);
-
-        if (health.containsKey("error")) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(health);
-    }
-
-    // ===== SEARCH AND FILTERING =====
-
-    @GetMapping("/strategies/search")
-    @Operation(summary = "Search Strategies", description = "Search strategies by name or description")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Search completed successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid search parameters")
-    })
-    public ResponseEntity<Page<Strategy>> searchStrategies(
-            @Parameter(description = "Search query")
-            @RequestParam String query,
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "20") int size) {
-
-        log.info("GET /api/strategy/strategies/search?query={} - page: {}, size: {}", query, page, size);
-        Page<Strategy> strategies = strategyService.searchStrategies(query, page, size);
         return ResponseEntity.ok(strategies);
     }
 
-    @GetMapping("/strategies/by-owner/{ownerId}")
-    @Operation(summary = "Get Strategies by Owner", description = "Retrieve strategies owned by specific authority")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Strategies retrieved successfully")
-    })
-    public ResponseEntity<Page<Strategy>> getStrategiesByOwner(
-            @Parameter(description = "Owner Authority ID")
-            @PathVariable Long ownerId,
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "20") int size) {
+    @GetMapping("/search")
+    @Operation(
+            summary = "Search strategies",
+            description = "Search strategies by name or description in both primary and secondary languages"
+    )
+    @ApiResponse(responseCode = "200", description = "Search completed successfully")
+    public ResponseEntity<Page<StrategyResponseDto>> searchStrategies(
+            @Parameter(description = "Search query", required = true)
+            @RequestParam @NotNull String query,
+            @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("GET /api/strategy/strategies/by-owner/{} - page: {}, size: {}", ownerId, page, size);
-        Page<Strategy> strategies = strategyService.getStrategiesByOwner(ownerId, page, size);
+        log.info("REST request to search strategies with query: '{}', page: {}, size: {}",
+                query, pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<StrategyResponseDto> strategies = strategyService.searchStrategies(query, pageable);
+
+        log.info("Search returned {} strategies for query: '{}'",
+                strategies.getTotalElements(), query);
+
         return ResponseEntity.ok(strategies);
     }
 
-    // ===== TEMPORAL ANALYTICS =====
-
-    @GetMapping("/strategies/by-year/{year}")
-    @Operation(summary = "Get Strategies by Year", description = "Retrieve strategies for specific year")
-    @ApiResponse(responseCode = "200", description = "Strategies retrieved successfully")
-    public ResponseEntity<List<Strategy>> getStrategiesByYear(
-            @Parameter(description = "Year (YYYY)")
-            @PathVariable int year) {
-
-        log.info("GET /api/strategy/strategies/by-year/{}", year);
-        List<Strategy> strategies = strategyService.getStrategiesByYear(year);
-        return ResponseEntity.ok(strategies);
-    }
-
-    @GetMapping("/strategies/by-timeline")
-    @Operation(summary = "Get Strategies by Timeline", description = "Retrieve strategies within date range")
-    @ApiResponse(responseCode = "200", description = "Strategies retrieved successfully")
-    public ResponseEntity<List<Strategy>> getStrategiesByTimelineRange(
-            @Parameter(description = "Start date (YYYY-MM-DD)")
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @Parameter(description = "End date (YYYY-MM-DD)")
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
-
-        log.info("GET /api/strategy/strategies/by-timeline?fromDate={}&toDate={}", fromDate, toDate);
-        List<Strategy> strategies = strategyService.getStrategiesByTimelineRange(fromDate, toDate);
-        return ResponseEntity.ok(strategies);
-    }
-
-    @GetMapping("/strategies/active-on-date")
-    @Operation(summary = "Get Active Strategies on Date", description = "Retrieve strategies active on specific date")
-    @ApiResponse(responseCode = "200", description = "Active strategies retrieved successfully")
-    public ResponseEntity<List<Strategy>> getActiveStrategiesOnDate(
-            @Parameter(description = "Date (YYYY-MM-DD)")
+    @GetMapping("/active-on-date")
+    @Operation(
+            summary = "Get strategies active on specific date",
+            description = "Retrieves all strategies that are active (within timeline) on the specified date"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved active strategies")
+    public ResponseEntity<List<StrategyResponseDto>> getActiveStrategiesOnDate(
+            @Parameter(description = "Date to check (yyyy-MM-dd)", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        log.info("GET /api/strategy/strategies/active-on-date?date={}", date);
-        List<Strategy> strategies = strategyService.getActiveStrategiesOnDate(date);
+        log.info("REST request to get strategies active on date: {}", date);
+
+        List<StrategyResponseDto> strategies = strategyService.getActiveStrategiesOnDate(date);
+
+        log.info("Found {} strategies active on date: {}", strategies.size(), date);
+
         return ResponseEntity.ok(strategies);
     }
 
-    // ===== FINANCIAL ANALYTICS =====
+    @GetMapping("/timeline-range")
+    @Operation(
+            summary = "Get strategies by timeline range",
+            description = "Retrieves strategies that start within the specified date range"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved strategies in timeline range")
+    public ResponseEntity<List<StrategyResponseDto>> getStrategiesByTimelineRange(
+            @Parameter(description = "Start date (yyyy-MM-dd)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "End date (yyyy-MM-dd)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
 
-    @GetMapping("/strategies/by-budget-range")
-    @Operation(summary = "Get Strategies by Budget Range", description = "Retrieve strategies within budget range")
-    @ApiResponse(responseCode = "200", description = "Strategies retrieved successfully")
-    public ResponseEntity<List<Strategy>> getStrategiesByBudgetRange(
-            @Parameter(description = "Minimum budget amount")
-            @RequestParam BigDecimal minBudget,
-            @Parameter(description = "Maximum budget amount")
-            @RequestParam BigDecimal maxBudget) {
+        log.info("REST request to get strategies by timeline range: {} to {}", fromDate, toDate);
 
-        log.info("GET /api/strategy/strategies/by-budget-range?minBudget={}&maxBudget={}", minBudget, maxBudget);
-        List<Strategy> strategies = strategyService.getStrategiesByBudgetRange(minBudget, maxBudget);
+        List<StrategyResponseDto> strategies = strategyService.getStrategiesByTimelineRange(fromDate, toDate);
+
+        log.info("Found {} strategies in timeline range: {} to {}", strategies.size(), fromDate, toDate);
+
         return ResponseEntity.ok(strategies);
     }
 
-    @GetMapping("/strategies/top-by-budget")
-    @Operation(summary = "Get Top Strategies by Budget", description = "Retrieve top strategies sorted by budget")
-    @ApiResponse(responseCode = "200", description = "Top strategies retrieved successfully")
-    public ResponseEntity<List<Strategy>> getTopStrategiesByBudget(
-            @Parameter(description = "Number of strategies to retrieve")
-            @RequestParam(defaultValue = "10") int limit) {
+    @GetMapping("/year/{year}")
+    @Operation(
+            summary = "Get strategies by year",
+            description = "Retrieves all strategies that start in the specified year"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved strategies for year")
+    public ResponseEntity<List<StrategyResponseDto>> getStrategiesByYear(
+            @Parameter(description = "Year", required = true)
+            @PathVariable @Min(2000) int year) {
 
-        log.info("GET /api/strategy/strategies/top-by-budget?limit={}", limit);
-        List<Strategy> strategies = strategyService.getTopStrategiesByBudget(limit);
+        log.info("REST request to get strategies by year: {}", year);
+
+        List<StrategyResponseDto> strategies = strategyService.getStrategiesByYear(year);
+
+        log.info("Found {} strategies for year: {}", strategies.size(), year);
+
         return ResponseEntity.ok(strategies);
     }
 
-    // ===== COLLABORATION ANALYTICS =====
+    @GetMapping("/recent")
+    @Operation(
+            summary = "Get recent strategies",
+            description = "Retrieves the most recently created strategies"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved recent strategies")
+    public ResponseEntity<List<StrategyResponseDto>> getRecentStrategies(
+            @Parameter(description = "Maximum number of strategies to return", required = false)
+            @RequestParam(defaultValue = "10") @Min(1) int limit) {
 
-    @GetMapping("/analytics/authority-participation")
-    @Operation(summary = "Authority Participation Analytics", description = "Get participation metrics by authority")
-    @ApiResponse(responseCode = "200", description = "Authority participation data retrieved successfully")
-    public ResponseEntity<List<Map<String, Object>>> getAuthorityParticipation() {
-        log.info("GET /api/strategy/analytics/authority-participation");
-        List<Map<String, Object>> participation = strategyService.getAuthorityParticipation();
-        return ResponseEntity.ok(participation);
-    }
+        log.info("REST request to get recent strategies, limit: {}", limit);
 
-    // ===== QUICK INSIGHTS =====
+        List<StrategyResponseDto> strategies = strategyService.getRecentStrategies(limit);
 
-    @GetMapping("/insights/current-year")
-    @Operation(summary = "Current Year Insights", description = "Quick insights for current year strategies")
-    @ApiResponse(responseCode = "200", description = "Current year insights retrieved successfully")
-    public ResponseEntity<List<Strategy>> getCurrentYearStrategies() {
-        int currentYear = LocalDate.now().getYear();
-        log.info("GET /api/strategy/insights/current-year ({})", currentYear);
-        List<Strategy> strategies = strategyService.getStrategiesByYear(currentYear);
+        log.info("Retrieved {} recent strategies", strategies.size());
+
         return ResponseEntity.ok(strategies);
     }
 
-    @GetMapping("/insights/active-today")
-    @Operation(summary = "Active Today", description = "Strategies active as of today")
-    @ApiResponse(responseCode = "200", description = "Today's active strategies retrieved successfully")
-    public ResponseEntity<List<Strategy>> getActiveTodayStrategies() {
-        LocalDate today = LocalDate.now();
-        log.info("GET /api/strategy/insights/active-today ({})", today);
-        List<Strategy> strategies = strategyService.getActiveStrategiesOnDate(today);
+    @GetMapping("/summary")
+    @Operation(
+            summary = "Get strategy summary",
+            description = "Retrieves aggregated statistics about all active strategies"
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved strategy summary")
+    public ResponseEntity<Map<String, Object>> getStrategySummary() {
+
+        log.info("REST request to get strategy summary");
+
+        Map<String, Object> summary = strategyService.getStrategySummary();
+
+        log.info("Retrieved strategy summary with {} metrics", summary.size());
+
+        return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/multi-language-search")
+    @Operation(
+            summary = "Search by multi-language names",
+            description = "Search strategies by primary and/or secondary language names"
+    )
+    @ApiResponse(responseCode = "200", description = "Multi-language search completed successfully")
+    public ResponseEntity<Page<StrategyResponseDto>> findByMultiLanguageNames(
+            @Parameter(description = "Primary language name")
+            @RequestParam(required = false) String primaryName,
+            @Parameter(description = "Secondary language name")
+            @RequestParam(required = false) String secondaryName,
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        log.info("REST request for multi-language search - primary: '{}', secondary: '{}'",
+                primaryName, secondaryName);
+
+        Page<StrategyResponseDto> strategies = strategyService.findByMultiLanguageNames(
+                primaryName, secondaryName, pageable);
+
+        log.info("Multi-language search returned {} strategies", strategies.getTotalElements());
+
         return ResponseEntity.ok(strategies);
     }
 }
