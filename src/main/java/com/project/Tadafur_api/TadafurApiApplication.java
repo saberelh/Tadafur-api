@@ -7,9 +7,13 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.project.Tadafur_api.domain.strategy.repository")
+@EnableJpaRepositories(basePackages = {
+        "com.project.Tadafur_api.domain.strategy.repository"
+})
 @EnableJpaAuditing
-@ComponentScan(basePackages = "com.project.Tadafur_api")
+@ComponentScan(basePackages = {
+        "com.project.Tadafur_api"
+})
 public class TadafurApiApplication {
 
     public static void main(String[] args) {

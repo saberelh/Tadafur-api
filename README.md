@@ -68,66 +68,58 @@ src/main/java/com/project/Tadafur_api/
    ```bash
    git clone https://github.com/yourusername/tadafur-strategic-planning-api.git
    cd tadafur-strategic-planning-api
-   
 
 
 
-Full Strategy db erd "erDiagram
-%% Core Strategy Hierarchy
+
+erDiagram
+%% ==================================
+%% Core Strategy & Execution Hierarchy
+%% ==================================
 strategy {
 int id PK
-varchar arabic_name
-varchar english_name
-text arabic_description
-text english_description
+varchar primary_name
+text primary_description
 text vision
 int owner_id FK
 date timeline_from
 date timeline_to
+varchar secondary_name
+text secondary_description
 numeric planned_total_budget
 numeric calculated_total_budget
 numeric calculated_total_payments
 integer_array budget_sources
-varchar created_by
-timestamp created_at
-varchar last_modified_by
-timestamp last_modified_at
-varchar status_code
 }
 
     perspective {
         int id PK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        text primary_description
         int owner_id FK
         int parent_id FK
         varchar planning_status_code
         varchar progress_status_code
+        varchar secondary_name
+        text secondary_description
         numeric calculated_total_budget
         numeric calculated_total_payments
         numeric planned_total_budget
         integer_array budget_sources
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
     }
 
     goal {
         int id PK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        text primary_description
         int parent_id FK
         int owner_id FK
         date start_date
         date end_date
         varchar planning_status_code
         varchar progress_status_code
+        varchar secondary_name
+        text secondary_description
         numeric calculated_progress_percent
         numeric hybrid_progress_percent
         int vision_priority FK
@@ -135,24 +127,19 @@ varchar status_code
         numeric calculated_total_budget
         numeric calculated_total_payments
         integer_array budget_sources
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
     }
 
     program {
         int id PK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        text primary_description
         int parent_id FK
-        float contributionpercent
+        double contributionpercent
         int owner_id FK
         varchar planning_status_code
         varchar progress_status_code
+        varchar secondary_name
+        text secondary_description
         integer_array vision_priorities
         numeric calculated_progress_percent
         numeric hybrid_progress_percent
@@ -160,21 +147,14 @@ varchar status_code
         numeric calculated_total_budget
         numeric calculated_total_payments
         integer_array budget_sources
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
     }
 
     initiative {
         int id PK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        text primary_description
         int parent_id FK
-        float contributionpercent
+        double contributionpercent
         int owner_id FK
         numeric planned_total_budget
         int type
@@ -182,6 +162,8 @@ varchar status_code
         date end_date
         varchar planning_status_code
         varchar progress_status_code
+        varchar secondary_name
+        text secondary_description
         integer_array vision_priorities
         numeric calculated_progress_percent
         numeric hybrid_progress_percent
@@ -189,21 +171,14 @@ varchar status_code
         numeric calculated_total_payments
         int owner_node_id FK
         integer_array budget_sources
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
     }
 
     project {
         int id PK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        text primary_description
         int parent_id FK
-        float contributionpercent
+        double contributionpercent
         int owner_id FK
         numeric planned_total_budget
         int type
@@ -211,9 +186,16 @@ varchar status_code
         date end_date
         varchar planning_status_code
         varchar progress_status_code
+        varchar secondary_name
+        text secondary_description
         numeric actual_cost
         int priority_id FK
         int status_id FK
+        varchar created_by
+        timestamp created_at
+        varchar last_modified_by
+        timestamp last_modified_at
+        varchar status_code
         integer_array vision_priorities
         bigint project_methodology_id FK
         numeric progress_by_effort
@@ -229,21 +211,16 @@ varchar status_code
         timestamp summary_sent_date
         int summary_period FK
         integer_array budget_sources
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
     }
 
     project_work_item {
         int id PK
         int project_id FK
         int parent_id FK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        text primary_description
+        varchar secondary_name
+        text secondary_description
         int priority_id FK
         int status_id FK
         int assignee_user_id FK
@@ -256,6 +233,11 @@ varchar status_code
         date actual_start_date
         date actual_due_date
         numeric progress_percent
+        varchar created_by
+        timestamp created_at
+        varchar last_modified_by
+        timestamp last_modified_at
+        varchar status_code
         bigint work_item_group_id FK
         int level
         int item_sort
@@ -265,31 +247,23 @@ varchar status_code
         numeric manual_progress_by_effort
         numeric manual_progress_by_average
         boolean is_added_from_custom
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
     }
 
+    %% ==================================
     %% Progress Tracking System
+    %% ==================================
     progress_point {
         int id PK
         date date
-        float percent
-    }
-
-    strategy_checkpoint {
-        int strategy_id PK FK
-        int progress_point_id PK FK
-    }
-
-    perspective_checkpoint {
-        int perspective_id PK FK
-        int progress_point_id PK FK
+        double percent
     }
 
     goal_checkpoint {
+        int goal_id PK FK
+        int progress_point_id PK FK
+    }
+
+    goal_progress_log {
         int goal_id PK FK
         int progress_point_id PK FK
     }
@@ -299,7 +273,17 @@ varchar status_code
         int progress_point_id PK FK
     }
 
+    program_progress_log {
+        int program_id PK FK
+        int progress_point_id PK FK
+    }
+
     initiative_checkpoint {
+        int initiative_id PK FK
+        int progress_point_id PK FK
+    }
+
+    initiative_progress_log {
         int initiative_id PK FK
         int progress_point_id PK FK
     }
@@ -309,43 +293,30 @@ varchar status_code
         int progress_point_id PK FK
     }
 
-    strategy_progress_log {
-        int strategy_id PK FK
-        int progress_point_id PK FK
-    }
-
-    perspective_progress_log {
-        int perspective_id PK FK
-        int progress_point_id PK FK
-    }
-
-    goal_progress_log {
-        int goal_id PK FK
-        int progress_point_id PK FK
-    }
-
-    program_progress_log {
-        int program_id PK FK
-        int progress_point_id PK FK
-    }
-
-    initiative_progress_log {
-        int initiative_id PK FK
-        int progress_point_id PK FK
-    }
-
     project_progress_log {
         int project_id PK FK
         int progress_point_id PK FK
     }
 
+    project_tracking {
+        int id PK
+        int project_id FK
+        numeric calculated_progress_by_effort
+        numeric calculated_progress_by_average
+        numeric manual_progress_by_effort
+        numeric manual_progress_by_average
+        timestamp calculation_date_time
+    }
+
+    %% ==================================
     %% Annual Planning System
+    %% ==================================
     annual_plan {
         int id PK
-        varchar arabic_name
-        varchar english_name
-        text arabic_description
-        text english_description
+        varchar primary_name
+        varchar secondary_name
+        text primary_description
+        text secondary_description
         int owner_id FK
         int plan_year
         varchar plan_status
@@ -359,8 +330,8 @@ varchar status_code
     annual_plan_goal {
         int id PK
         int annual_plan_id FK
-        text arabic_description
-        text english_description
+        text primary_description
+        text secondary_description
     }
 
     annual_plan_indicators {
@@ -386,12 +357,14 @@ varchar status_code
         numeric annual_budget
     }
 
+    %% ==================================
     %% KPI and Indicators System
+    %% ==================================
     goal_indicators {
         int id PK
         int goal_id FK
-        text arabic_description
-        text english_description
+        text primary_description
+        text secondary_description
         numeric baseline_value
         numeric targeted_value
         varchar measurement_unit
@@ -402,10 +375,12 @@ varchar status_code
         varchar status_code
     }
 
-    initiative_indicators {
+    goal_kpi {
         int id PK
-        int initiative_id FK
-        int indicator_id FK
+        text primary_description
+        int status_id
+        int goal_id FK
+        text secondary_description
     }
 
     program_indicators {
@@ -414,20 +389,21 @@ varchar status_code
         int indicator_id FK
     }
 
-    goal_kpi {
+    initiative_indicators {
         int id PK
-        text description
-        int status_id
-        int goal_id FK
+        int initiative_id FK
+        int indicator_id FK
     }
-
+    
+    %% ==================================
     %% Vision Alignment System
+    %% ==================================
     vision_pillars {
         int id PK
-        text arabic_name
-        text english_name
-        text arabic_description
-        text english_description
+        text primary_name
+        text secondary_name
+        text primary_description
+        text secondary_description
         varchar created_by
         timestamp created_at
         varchar last_modified_by
@@ -438,13 +414,13 @@ varchar status_code
 
     vision_priorities {
         int id PK
-        text arabic_name
-        text english_name
+        text primary_name
+        text secondary_name
         int pillar_id FK
-        text arabic_strategic_objective
-        text english_strategic_objective
-        text arabic_description
-        text english_description
+        text primary_strategic_objective
+        text secondary_strategic_objective
+        text primary_description
+        text secondary_description
         varchar created_by
         timestamp created_at
         varchar last_modified_by
@@ -454,8 +430,8 @@ varchar status_code
 
     vision_priority_goals {
         int id PK
-        text arabic_name
-        text english_name
+        text primary_name
+        text secondary_name
         varchar created_by
         timestamp created_at
         varchar last_modified_by
@@ -466,8 +442,8 @@ varchar status_code
 
     vision_priority_indicators {
         int id PK
-        text arabic_name
-        text english_name
+        text primary_name
+        text secondary_name
         varchar created_by
         timestamp created_at
         varchar last_modified_by
@@ -476,40 +452,19 @@ varchar status_code
         int priority_id FK
     }
 
-    %% Contributors and Collaboration
-    program_contributors {
-        int program_id PK FK
-        int authority_id PK FK
-    }
-
-    initiative_contributors {
-        int initiative_id PK FK
-        int authority_id PK FK
-    }
-
-    project_contributors {
-        int project_id PK FK
-        int authority_id PK FK
-    }
-
-    project_contributed_authority {
-        int id PK
-        int project_id FK
-        int authority_id FK
-        numeric contribution_percent
-    }
-
-    %% Project Management Details
+    %% ==================================
+    %% Project & Work Item Details
+    %% ==================================
     project_priority {
         int id PK
-        varchar arabic_name
-        varchar english_name
+        varchar primary_name
+        varchar secondary_name
     }
 
     project_status {
         int id PK
-        varchar arabic_name
-        varchar english_name
+        varchar primary_name
+        varchar secondary_name
     }
 
     project_methodology {
@@ -527,22 +482,6 @@ varchar status_code
         varchar period
     }
 
-    project_tracking {
-        int id PK
-        int project_id FK
-        numeric calculated_progress_by_effort
-        numeric calculated_progress_by_average
-        numeric manual_progress_by_effort
-        numeric manual_progress_by_average
-        timestamp calculation_date_time
-    }
-
-    project_stakeholder {
-        int id PK
-        int project_id FK
-        int org_chart_node_id FK
-    }
-
     project_members {
         int id PK
         bigint member_id FK
@@ -552,38 +491,51 @@ varchar status_code
 
     project_roles {
         int id PK
-        varchar english_name
-        varchar arabic_name
-        text english_description
-        text arabic_description
+        varchar secondary_name
+        varchar primary_name
+        text secondary_description
+        text primary_description
         varchar string_id
     }
 
-    %% Work Item Management
+    project_stakeholder {
+        int id PK
+        int project_id FK
+        int org_chart_node_id FK
+    }
+
     work_item_priority {
         int id PK
-        varchar arabic_name
-        varchar english_name
+        varchar primary_name
+        varchar secondary_name
     }
 
     work_item_status {
         int id PK
-        varchar arabic_name
-        varchar english_name
+        varchar primary_name
+        varchar secondary_name
         int priority
         numeric progress
     }
 
     work_item_group {
         bigint id PK
-        varchar english_name
-        varchar arabic_name
+        varchar secondary_name
+        varchar primary_name
+    }
+
+    work_item_type {
+        int id PK
+        varchar secondary_name
+        int level
+        bigint project_methodology_id FK
+        varchar primary_name
     }
 
     work_item_dependency_type {
         int id PK
-        varchar arabic_name
-        varchar english_name
+        varchar primary_name
+        varchar secondary_name
     }
 
     task_dependency {
@@ -607,22 +559,42 @@ varchar status_code
         varchar status_code
     }
 
-    work_item_type {
-        int id PK
-        varchar english_name
-        int level
-        bigint project_methodology_id FK
+    %% ==================================
+    %% Contributors System
+    %% ==================================
+    program_contributors {
+        int program_id PK FK
+        int authority_id PK FK
     }
 
-    %% Budget and Financial Tracking
+    initiative_contributors {
+        int initiative_id PK FK
+        int authority_id PK FK
+    }
+
+    project_contributors {
+        int project_id PK FK
+        int authority_id PK FK
+    }
+
+    project_contributed_authority {
+        int id PK
+        int project_id FK
+        int authority_id FK
+        numeric contribution_percent
+    }
+
+    %% ==================================
+    %% Financial & Budgeting System
+    %% ==================================
     budget_payments {
         int id PK
         int entity_id
         varchar entity_code FK
         date payment_date
         numeric amount
-        text arabic_payment_notes
-        text english_payment_notes
+        text primary_payment_notes
+        text secondary_payment_notes
         varchar created_by
         timestamp created_at
         varchar last_modified_by
@@ -630,36 +602,82 @@ varchar status_code
         varchar status_code
     }
 
-    %% Shared Reference Tables
+    spm_element {
+        varchar entity_code PK
+        varchar entity_type
+    }
+
+    %% ==================================
+    %% Issues, Risks, and Calendar
+    %% ==================================
+    issue_log {
+        bigint id PK
+        bigint project_id FK
+        varchar primary_title
+        varchar secondary_title
+        text primary_description
+        text secondary_description
+        bigint category_id FK
+        bigint severity_id FK
+        bigint impact_area_id FK
+        bigint status_id FK
+        bigint assigned_user_id FK
+        integer_array linked_items_ids
+        bigint type_id FK
+    }
+
+    issue_category { bigint id PK; varchar primary_name; bigint project_id FK; bigint parent_id FK; }
+    issue_severity { bigint id PK; varchar primary_name; }
+    issue_impact_area { bigint id PK; varchar primary_name; }
+    issue_status { bigint id PK; varchar primary_name; }
+    issue_type { bigint id PK; varchar primary_name; }
+    issue_attachment { bigint id PK; bigint issue_id FK; varchar file_name; }
+    issue_log_work_item { bigint id PK; bigint issue_log_id FK; bigint work_item_id FK; }
+    
+    risks { bigint id PK; varchar primary_name; int classification_id FK; int type_id FK; int category_id FK; int owner_id FK; }
+    risk_action_plans { int id PK; int risk_response_id FK; text action_plan; }
+    risk_responses { int id PK; int risk_id FK; int response_strategy FK; }
+    risk_projects { int id PK; int risk_id FK; int project_id FK; }
+    risk_categories { int id PK; int type_id FK; varchar primary_name; }
+    risk_types { int id PK; varchar primary_name; int classification_id FK; }
+    risk_classification { int id PK; varchar primary_name; }
+    risk_classification_response { int id PK; int classification_id FK; varchar primary_name; }
+
+    calendar_event {
+        int id PK
+        varchar primary_title
+        text primary_purpose
+        timestamp start_datetime
+        timestamp end_datetime
+        int project_id FK
+    }
+
+    %% ==================================
+    %% Service, Process & Journey
+    %% ==================================
+    service { bigint id PK; varchar primary_name; text primary_description; bigint owner_id FK; int org_chart_node_id FK; }
+    business_process { int id PK; varchar primary_name; int service_id FK; int authority_id FK; int journey_id FK; }
+    journey { bigint id PK; varchar primary_name; int authority_id FK; int journey_status_id FK; }
+    journey_flow { bigint id PK; int journey_id FK; int service_id FK; }
+    journey_status { int id PK; varchar primary_name; }
+
+    %% ==================================
+    %% Custom Boards
+    %% ==================================
+    custom_board { int id PK; varchar primary_name; int project_id FK; int user_id FK; }
+    custom_board_groups { int id PK; varchar primary_name; int custom_board_id FK; }
+    custom_board_work_items { int id PK; int custom_board_group_id FK; int project_work_item_id FK; }
+
+    %% ==================================
+    %% Core Organizational Entities
+    %% ==================================
     authority {
         bigint id PK
-        varchar namearabic
-        varchar nameenglish
-        timestamp created_at
-        timestamp last_modified_at
-        varchar created_by
-        varchar last_modified_by
-        varchar status_code
+        varchar primary_name
+        varchar secondary_name
         char vision_master
         char is_limited
-        text logobase64
-        char country_code
-    }
-
-    org_chart_tree {
-        int id PK
-        int node_type_id
-        int node_classification_id
-        int node_category_id
-        varchar arabic_title
-        varchar english_title
-        int parent_id FK
-        int authority_id FK
-        varchar created_by
-        timestamp created_at
-        varchar last_modified_by
-        timestamp last_modified_at
-        varchar status_code
+        varchar primary_language
     }
 
     users {
@@ -667,126 +685,144 @@ varchar status_code
         varchar firstname
         varchar lastname
         varchar username
-        varchar password
-        varchar role
-        timestamp created_at
-        timestamp last_modified_at
-        varchar created_by
-        varchar last_modified_by
-        varchar status_code
-        varchar keycloak_user_id
         bigint role_id FK
         varchar primary_email
+        bigint authority_id FK
     }
 
-    %% Relationships - Core Hierarchy
-    strategy ||--o{ perspective : "contains"
-    perspective ||--o{ goal : "contains"
-    goal ||--o{ program : "contains"
-    program ||--o{ initiative : "contains"
-    initiative ||--o{ project : "contains"
-    project ||--o{ project_work_item : "contains"
-    project_work_item ||--o{ project_work_item : "has subtasks"
+    role {
+        bigint id PK
+        varchar name
+        text description
+        bigint authority_id FK
+    }
 
-    %% Relationships - Ownership
-    authority ||--o{ strategy : "owns"
-    authority ||--o{ perspective : "owns"
-    authority ||--o{ goal : "owns"
-    authority ||--o{ program : "owns"
-    authority ||--o{ initiative : "owns"
-    authority ||--o{ project : "owns"
+    org_chart_tree {
+        int id PK
+        varchar primary_title
+        int parent_id FK
+        int authority_id FK
+    }
 
-    %% Relationships - Progress Tracking
-    progress_point ||--o{ strategy_checkpoint : "strategy milestone"
-    progress_point ||--o{ perspective_checkpoint : "perspective milestone"
-    progress_point ||--o{ goal_checkpoint : "goal milestone"
-    progress_point ||--o{ program_checkpoint : "program milestone"
-    progress_point ||--o{ initiative_checkpoint : "initiative milestone"
-    progress_point ||--o{ project_checkpoint : "project milestone"
 
-    strategy ||--o{ strategy_checkpoint : "has checkpoints"
-    perspective ||--o{ perspective_checkpoint : "has checkpoints"
-    goal ||--o{ goal_checkpoint : "has checkpoints"
-    program ||--o{ program_checkpoint : "has checkpoints"
-    initiative ||--o{ initiative_checkpoint : "has checkpoints"
-    project ||--o{ project_checkpoint : "has checkpoints"
+    %% ==================================
+    %% RELATIONSHIPS
+    %% ==================================
 
-    progress_point ||--o{ strategy_progress_log : "logs progress"
-    progress_point ||--o{ perspective_progress_log : "logs progress"
-    progress_point ||--o{ goal_progress_log : "logs progress"
-    progress_point ||--o{ program_progress_log : "logs progress"
-    progress_point ||--o{ initiative_progress_log : "logs progress"
-    progress_point ||--o{ project_progress_log : "logs progress"
+    %% Core Hierarchy
+    strategy                    ||--|{ perspective : "breaks down into"
+    perspective                 ||--|{ goal : "contains"
+    goal                        ||--|{ program : "is achieved by"
+    program                     ||--|{ initiative : "is composed of"
+    initiative                  ||--|{ project : "contains"
+    project                     ||--|{ project_work_item : "contains"
+    project_work_item           }o--|| project_work_item : "is parent of"
 
-    %% Relationships - Annual Planning
-    authority ||--o{ annual_plan : "creates"
-    annual_plan ||--o{ annual_plan_goal : "defines goals"
-    annual_plan ||--o{ annual_plan_indicators : "tracks indicators"
-    annual_plan ||--o{ annual_plan_initiative_project : "includes projects"
-    initiative ||--o{ annual_plan_initiative_project : "planned in"
-    project ||--o{ annual_plan_initiative_project : "planned in"
+    %% Ownership & Contributors
+    authority                   ||--|{ strategy : "owns"
+    authority                   ||--|{ perspective : "owns"
+    authority                   ||--|{ goal : "owns"
+    authority                   ||--|{ program : "owns"
+    authority                   ||--|{ initiative : "owns"
+    authority                   ||--|{ project : "owns"
+    authority                   ||--o{ program_contributors : "contributes to"
+    program                     ||--o{ program_contributors : "has"
+    authority                   ||--o{ initiative_contributors : "contributes to"
+    initiative                  ||--o{ initiative_contributors : "has"
+    authority                   ||--o{ project_contributors : "contributes to"
+    project                     ||--o{ project_contributors : "has"
+    authority                   ||--o{ project_contributed_authority : "contributes to"
+    project                     ||--o{ project_contributed_authority : "has"
 
-    %% Relationships - KPIs and Indicators
-    goal ||--o{ goal_indicators : "measures"
-    goal ||--o{ goal_kpi : "tracks performance"
-    initiative ||--o{ initiative_indicators : "measures"
-    program ||--o{ program_indicators : "measures"
-    goal_indicators ||--o{ initiative_indicators : "inherited by"
-    goal_indicators ||--o{ program_indicators : "inherited by"
-    goal_indicators ||--o{ annual_plan_indicators : "planned in"
+    %% Organizational Structure
+    authority                   ||--|{ users : "employs"
+    authority                   ||--|{ role : "defines"
+    authority                   ||--|{ org_chart_tree : "has"
+    users                       ||--o{ role : "has"
+    org_chart_tree              }o--|| org_chart_tree : "is parent of"
+    initiative                  ||--o{ org_chart_tree : "owned by unit"
 
-    %% Relationships - Vision Alignment
-    vision_pillars ||--o{ vision_priorities : "contains"
-    vision_priorities ||--o{ vision_priority_goals : "defines"
-    vision_priorities ||--o{ vision_priority_indicators : "measures"
-    vision_priorities ||--o{ goal : "aligns with"
-    vision_priorities ||--o{ program : "aligns with"
-    vision_priorities ||--o{ initiative : "aligns with"
-    vision_priorities ||--o{ project : "aligns with"
+    %% Vision Alignment
+    vision_pillars              ||--|{ vision_priorities : "contains"
+    vision_priorities           ||--|{ vision_priority_goals : "has"
+    vision_priorities           ||--|{ vision_priority_indicators : "has"
+    vision_priorities           ||--o{ goal : "aligns with"
 
-    %% Relationships - Contributors
-    authority ||--o{ program_contributors : "contributes to"
-    authority ||--o{ initiative_contributors : "contributes to"
-    authority ||--o{ project_contributors : "contributes to"
-    authority ||--o{ project_contributed_authority : "contributes to"
-    program ||--o{ program_contributors : "has contributors"
-    initiative ||--o{ initiative_contributors : "has contributors"
-    project ||--o{ project_contributors : "has contributors"
-    project ||--o{ project_contributed_authority : "has contributors"
+    %% Indicators and KPIs
+    goal                        |o--|{ goal_indicators : "measured by"
+    goal                        |o--|{ goal_kpi : "measured by"
+    program                     |o--o{ program_indicators : "tracks"
+    goal_indicators             ||--o{ program_indicators : "linked to"
+    initiative                  |o--o{ initiative_indicators : "tracks"
+t;
+goal_indicators             ||--o{ initiative_indicators : "linked to"
 
-    %% Relationships - Project Management
-    project_priority ||--o{ project : "prioritizes"
-    project_status ||--o{ project : "status of"
-    project_methodology ||--o{ project : "follows methodology"
-    project_summary_period ||--o{ project : "reports every"
-    project ||--o{ project_tracking : "tracks progress"
-    project ||--o{ project_stakeholder : "has stakeholders"
-    project ||--o{ project_members : "has members"
-    org_chart_tree ||--o{ project_stakeholder : "is stakeholder"
-    users ||--o{ project_members : "member of"
-    project_roles ||--o{ project_members : "has role"
+    %% Progress & Checkpoints
+    goal                        |o--o{ goal_checkpoint : "has"
+    progress_point              |o--o{ goal_checkpoint : "is"
+    program                     |o--o{ program_checkpoint : "has"
+    progress_point              |o--o{ program_checkpoint : "is"
+    initiative                  |o--o{ initiative_checkpoint : "has"
+    progress_point              |o--o{ initiative_checkpoint : "is"
+    project                     |o--o{ project_checkpoint : "has"
+    progress_point              |o--o{ project_checkpoint : "is"
+    goal                        |o--o{ goal_progress_log : "logs"
+    progress_point              |o--o{ goal_progress_log : "is"
+    program                     |o--o{ program_progress_log : "logs"
+    progress_point              |o--o{ program_progress_log : "is"
+    initiative                  |o--o{ initiative_progress_log : "logs"
+    progress_point              |o--o{ initiative_progress_log : "is"
+    project                     |o--o{ project_progress_log : "logs"
+    progress_point              |o--o{ project_progress_log : "is"
+    project                     ||--o{ project_tracking : "logs history"
 
-    %% Relationships - Work Items
-    work_item_priority ||--o{ project_work_item : "prioritizes"
-    work_item_status ||--o{ project_work_item : "status of"
-    work_item_group ||--o{ project_work_item : "groups"
-    users ||--o{ project_work_item : "assigned to"
-    project_work_item ||--o{ work_item_attachments : "has attachments"
-    project_work_item ||--o{ task_dependency : "depends on"
-    project_work_item ||--o{ task_dependency : "dependency for"
-    work_item_dependency_type ||--o{ task_dependency : "type of"
-    project_methodology ||--o{ work_item_type : "defines types"
+    %% Annual Plan
+    annual_plan                 ||--o{ annual_plan_goal : "has"
+    annual_plan                 ||--o{ annual_plan_indicators : "tracks"
+    annual_plan                 ||--o{ annual_plan_initiative_project : "funds"
+    initiative                  }o--|| annual_plan_initiative_project : "is funded by"
+    project                     }o--|| annual_plan_initiative_project : "is funded by"
+    goal_indicators             ||--o{ annual_plan_indicators : "is tracked in"
 
-    %% Relationships - Financial
-    budget_payments ||--o{ strategy : "pays for"
-    budget_payments ||--o{ perspective : "pays for"
-    budget_payments ||--o{ goal : "pays for"
-    budget_payments ||--o{ program : "pays for"
-    budget_payments ||--o{ initiative : "pays for"
-    budget_payments ||--o{ project : "pays for"
+    %% Project & Work Item Details
+    project_priority            ||--o{ project : "has"
+    project_status              ||--o{ project : "has"
+    project_methodology         ||--o{ project : "uses"
+    project_summary_period      ||--o{ project : "reports in"
+    project                     ||--o{ project_members : "has"
+    users                       ||--o{ project_members : "is member of"
+    project_roles               ||--o{ project_members : "has role"
+    project                     |o--|| project_stakeholder : "has"
+    org_chart_tree              |o--|| project_stakeholder : "is"
+    project                     ||--o{ calendar_event : "has"
+    project_work_item           ||--o{ work_item_attachments : "has"
+    project_work_item           |o--o{ task_dependency : "depends on"
+    project_work_item           |o--o{ task_dependency : "precedes"
+    work_item_dependency_type   ||--o{ task_dependency : "is type of"
+    work_item_priority          ||--o{ project_work_item : "has"
+    work_item_status            ||--o{ project_work_item : "has"
+    work_item_group             ||--o{ project_work_item : "part of"
+    work_item_type              ||--o{ project_work_item : "is type of"
+    project_methodology         ||--o{ work_item_type : "defines"
+    users                       ||--o{ project_work_item : "assigned to"
+    
+    %% Issue & Risk Management
+    project                     ||--o{ issue_log : "has"
+    issue_category              ||--o{ issue_log : "categorizes"
+    issue_severity              ||--o{ issue_log : "has"
+    issue_impact_area           ||--o{ issue_log : "has"
+    issue_status                ||--o{ issue_log : "has"
+    issue_type                  ||--o{ issue_log : "is type of"
+    issue_log                   ||--o{ issue_attachment : "has"
+    issue_log                   |o--o{ issue_log_work_item : "relates to"
+    project_work_item           |o--o{ issue_log_work_item : "related to"
+    project                     |o--o{ risk_projects : "has"
+    risks                       |o--o{ risk_projects : "is in"
+    risks                       |o--o{ risk_responses : "has"
+    risk_responses              |o--o{ risk_action_plans : "has"
+    risk_classification_response ||--o{ risk_responses : "has"
+    risk_types                  |o--o{ risk_categories : "has"
+    risk_classification         |o--o{ risk_types : "has"
 
-    %% Relationships - Organizational
-    org_chart_tree ||--o{ org_chart_tree : "parent node"
-    authority ||--o{ org_chart_tree : "organizational unit"
-    org_chart_tree ||--o{ initiative : "owns initiative"
-
+    %% Budgeting
+    spm_element                 ||--o{ budget_payments : "tracks"

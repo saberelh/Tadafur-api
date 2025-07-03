@@ -1,7 +1,12 @@
+// File: domain/strategy/entity/Strategy.java
 package com.project.Tadafur_api.domain.strategy.entity;
 
-import com.project.Tadafur_api.shared.common.entity.BaseEntity;
+import com.project.Tadafur_api.domain.common.entity.BaseEntity;
+import com.project.Tadafur_api.shared.constants.DomainConstants;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,8 +15,12 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Strategy Entity - Top level of the strategic planning hierarchy
+ * Strategy → Perspective → Goal → Program → Initiative → Project → Work Items
+ */
 @Entity
-@Table(name = "strategy")
+@Table(name = "strategy", schema = DomainConstants.DATABASE_SCHEMA)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,9 +31,12 @@ public class Strategy extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "primary_name")
+    @NotBlank(message = "Primary name is required")
+    @Size(max = 255)
+    @Column(name = "primary_name", nullable = false)
     private String primaryName;
 
+    @Size(max = 255)
     @Column(name = "secondary_name")
     private String secondaryName;
 
@@ -37,7 +49,8 @@ public class Strategy extends BaseEntity {
     @Column(name = "vision", columnDefinition = "TEXT")
     private String vision;
 
-    @Column(name = "owner_id")
+    @NotNull(message = "Owner is required")
+    @Column(name = "owner_id", nullable = false)
     private Long ownerId;
 
     @Column(name = "timeline_from")
@@ -55,20 +68,30 @@ public class Strategy extends BaseEntity {
     @Column(name = "calculated_total_payments", precision = 15, scale = 2)
     private BigDecimal calculatedTotalPayments;
 
-    @Column(name = "budget_sources")
-    private String budgetSources;
+    @Column(name = "budget_sources", columnDefinition = "TEXT")
+    private String budgetSources; // JSON array stored as string
 
-    // Helper methods
+    // Business Logic Methods
+
+    /**
+     * Get display name based on language preference
+     */
     public String getDisplayName() {
         return secondaryName != null && !secondaryName.trim().isEmpty() ?
                 secondaryName : primaryName;
     }
 
+    /**
+     * Get display description based on language preference
+     */
     public String getDisplayDescription() {
         return secondaryDescription != null && !secondaryDescription.trim().isEmpty() ?
                 secondaryDescription : primaryDescription;
     }
 
+    /**
+     * Calculate budget utilization percentage
+     */
     public BigDecimal getBudgetUtilization() {
         if (plannedTotalBudget == null || plannedTotalBudget.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
@@ -76,14 +99,39 @@ public class Strategy extends BaseEntity {
         if (calculatedTotalPayments == null) {
             return BigDecimal.ZERO;
         }
-        return calculatedTotalPayments.divide(plannedTotalBudget, 4, BigDecimal.ROUND_HALF_UP)
+        return calculatedTotalPayments
+                .divide(plannedTotalBudget, 4, BigDecimal.ROUND_HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
     }
 
+    /**
+     * Check if strategy is within timeline on given date
+     */
     public boolean isWithinTimeline(LocalDate date) {
         if (timelineFrom == null || timelineTo == null || date == null) {
             return false;
         }
         return !date.isBefore(timelineFrom) && !date.isAfter(timelineTo);
+    }
+
+    /**
+     * Check if strategy is currently active
+     */
+    public boolean isCurrentlyActive() {
+        return isWithinTimeline(LocalDate.now());
+    }
+
+    /**
+     * Get days remaining in strategy timeline
+     */
+    public Long getDaysRemaining() {
+        if (timelineTo == null) {
+            return null;
+        }
+        LocalDate now = LocalDate.now();
+        if (now.isAfter(timelineTo)) {
+            return 0L;
+        }
+        return java.time.temporal.ChronoUnit.DAYS.between(now, timelineTo);
     }
 }

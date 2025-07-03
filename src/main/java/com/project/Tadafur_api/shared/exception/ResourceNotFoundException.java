@@ -1,13 +1,10 @@
+// File: shared/exception/ResourceNotFoundException.java
 package com.project.Tadafur_api.shared.exception;
 
 public class ResourceNotFoundException extends RuntimeException {
 
     public ResourceNotFoundException(String message) {
         super(message);
-    }
-
-    public ResourceNotFoundException(String message, Throwable cause) {
-        super(message, cause);
     }
 
     public ResourceNotFoundException(String entity, String field, Object value) {
