@@ -220,3 +220,5 @@ public class InitiativeController {
     public ResponseEntity<List<InitiativeResponseDto>> getInitiativesByMinimumProgress(
             @Parameter(description = "Minimum progress percentage (0-100)", required = true)
             @PathVariable @NotNull @Min(0) BigDecimal minProgress) {
+        return null;
+    }}

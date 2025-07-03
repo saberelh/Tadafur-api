@@ -1,5 +1,4 @@
-src/main/java/com/project/Tadafur_api/domain/strategy/controller/hierarchy/StrategyController.java
-        javapackage com.project.Tadafur_api.domain.strategy.controller.hierarchy;
+package com.project.Tadafur_api.domain.strategy.controller.hierarchy;
 
 import com.project.Tadafur_api.domain.strategy.dto.response.StrategyResponseDto;
 import com.project.Tadafur_api.domain.strategy.service.hierarchy.StrategyService;

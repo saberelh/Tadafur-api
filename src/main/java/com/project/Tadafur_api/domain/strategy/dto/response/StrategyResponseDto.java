@@ -7,33 +7,42 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StrategyResponseDto {
+public class ProgramResponseDto {
 
     private Long id;
     private String primaryName;
     private String secondaryName;
     private String primaryDescription;
     private String secondaryDescription;
-    private String vision;
+    private Long parentId;
+    private String parentName;
+    private Double contributionPercent;
     private Long ownerId;
+    private String ownerName;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate timelineFrom;
+    private String planningStatusCode;
+    private String progressStatusCode;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate timelineTo;
+    private List<Integer> visionPriorities;
+    private List<String> visionPriorityNames;
+
+    private BigDecimal calculatedProgressPercent;
+    private BigDecimal hybridProgressPercent;
+    private BigDecimal effectiveProgress;
 
     private BigDecimal plannedTotalBudget;
     private BigDecimal calculatedTotalBudget;
     private BigDecimal calculatedTotalPayments;
     private BigDecimal budgetUtilization;
+
+    private List<Integer> budgetSources;
 
     // Audit fields
     private String createdBy;
@@ -48,14 +57,15 @@ public class StrategyResponseDto {
 
     private String statusCode;
 
-    // Timeline status
-    private Boolean isActive;
-    private String timelineStatus;
+    // Aggregated data
+    private Integer initiativeCount;
+    private Integer totalProjectCount;
+    private Integer indicatorCount;
+    private Integer contributorCount;
 
     // Display helpers
     public String getDisplayName() {
-        return secondaryName != null && !secondaryName.trim().isEmpty() ?
-                secondaryName : primaryName;
+        return secondaryName != null && !secondaryName.trim().isEmpty() ? secondaryName : primaryName;
     }
 
     public String getDisplayDescription() {

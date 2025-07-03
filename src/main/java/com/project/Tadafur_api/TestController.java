@@ -38,7 +38,34 @@ public class TestController {
             return "❌ Database connection failed: " + e.getMessage();
         }
     }
+    @GetMapping("/strategy-list")
+    public String getStrategyList() {
+        try {
+            Connection connection = dataSource.getConnection();
+            String query = "SELECT id, primary_name, secondary_name, owner_id FROM \"2172_OM\".strategy LIMIT 5";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
 
+            StringBuilder result = new StringBuilder();
+            result.append("Strategy List from Database:<br><br>");
+
+            while (rs.next()) {
+                result.append("ID: ").append(rs.getLong("id"))
+                        .append(", Primary: ").append(rs.getString("primary_name"))
+                        .append(", Secondary: ").append(rs.getString("secondary_name"))
+                        .append(", Owner: ").append(rs.getLong("owner_id"))
+                        .append("<br>");
+            }
+
+            rs.close();
+            stmt.close();
+            connection.close();
+            return result.toString();
+
+        } catch (Exception e) {
+            return "❌ Error getting strategy list: " + e.getMessage();
+        }
+    }
     @GetMapping("/db-tables")
     public String checkTables() {
         try {
