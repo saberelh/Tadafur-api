@@ -1,4 +1,3 @@
-
 // File: application/mapper/strategy/StrategyMapper.java
 package com.project.Tadafur_api.application.mapper.strategy;
 
@@ -47,6 +46,28 @@ public class StrategyMapper {
 
         // Calculate derived fields
         enrichWithCalculatedFields(dto, strategy);
+
+        // Parse budget sources if present
+        if (strategy.getBudgetSources() != null && !strategy.getBudgetSources().trim().isEmpty()) {
+            try {
+                // Convert JSON string to list of integers
+                String sources = strategy.getBudgetSources().trim();
+                if (sources.startsWith("[") && sources.endsWith("]")) {
+                    sources = sources.substring(1, sources.length() - 1);
+                    if (!sources.isEmpty()) {
+                        List<Integer> budgetSourcesList = List.of(sources.split(","))
+                                .stream()
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        dto.setBudgetSources(budgetSourcesList);
+                    }
+                }
+            } catch (Exception e) {
+                // If parsing fails, set empty list
+                dto.setBudgetSources(List.of());
+            }
+        }
 
         return dto;
     }
