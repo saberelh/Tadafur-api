@@ -1,3 +1,4 @@
+
 // File: shared/constants/DomainConstants.java
 package com.project.Tadafur_api.shared.constants;
 
@@ -8,8 +9,8 @@ public final class DomainConstants {
     public static final String STATUS_DELETED = "DELETED";
     public static final String STATUS_ARCHIVED = "ARCHIVED";
 
-    // Database Schema - REMOVED to use default (public)
-    public static final String DATABASE_SCHEMA = "";
+    // Database Schema
+    public static final String DATABASE_SCHEMA = "2172_OM";
 
     // Planning Status
     public static final String PLANNING_STATUS_DRAFT = "DRAFT";

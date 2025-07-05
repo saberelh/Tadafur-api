@@ -20,7 +20,7 @@ import java.time.LocalDate;
  * Strategy → Perspective → Goal → Program → Initiative → Project → Work Items
  */
 @Entity
-@Table(name = "strategy", schema = DomainConstants.DATABASE_SCHEMA)
+@Table(name = "strategy")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
