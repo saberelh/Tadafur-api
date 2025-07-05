@@ -139,7 +139,7 @@ public class Strategy implements Serializable {
     }
 
     /**
-     * Get days remaining in strategy timeline
+     * Get days remaining in strategy timelinee
      */
     public Long getDaysRemaining() {
         if (timelineTo == null) {
