@@ -1,19 +1,13 @@
 // File: domain/strategy/entity/Strategy.java
 package com.project.Tadafur_api.domain.strategy.entity;
 
-import com.project.Tadafur_api.domain.common.entity.BaseEntity;
-import com.project.Tadafur_api.shared.constants.DomainConstants;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Strategy Entity - Top level of the strategic planning hierarchy
@@ -21,22 +15,22 @@ import java.time.LocalDate;
  */
 @Entity
 @Table(name = "strategy")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class Strategy extends BaseEntity {
+@Builder
+@ToString
+@EqualsAndHashCode
+public class Strategy implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Primary name is required")
-    @Size(max = 255)
     @Column(name = "primary_name", nullable = false)
     private String primaryName;
 
-    @Size(max = 255)
     @Column(name = "secondary_name")
     private String secondaryName;
 
@@ -49,7 +43,6 @@ public class Strategy extends BaseEntity {
     @Column(name = "vision", columnDefinition = "TEXT")
     private String vision;
 
-    @NotNull(message = "Owner is required")
     @Column(name = "owner_id", nullable = false)
     private Long ownerId;
 
@@ -68,8 +61,25 @@ public class Strategy extends BaseEntity {
     @Column(name = "calculated_total_payments", precision = 15, scale = 2)
     private BigDecimal calculatedTotalPayments;
 
-    @Column(name = "budget_sources", columnDefinition = "TEXT")
-    private String budgetSources; // JSON array stored as string
+    @Column(name = "budget_sources", columnDefinition = "integer[]")
+    private String budgetSources;
+
+    // Transient fields for compatibility
+    @Transient
+    private String createdBy;
+
+    @Transient
+    private LocalDateTime createdAt;
+
+    @Transient
+    private String lastModifiedBy;
+
+    @Transient
+    private LocalDateTime lastModifiedAt;
+
+    @Transient
+    @Builder.Default
+    private String statusCode = "ACTIVE";
 
     // Business Logic Methods
 
@@ -119,6 +129,13 @@ public class Strategy extends BaseEntity {
      */
     public boolean isCurrentlyActive() {
         return isWithinTimeline(LocalDate.now());
+    }
+
+    /**
+     * Check if active
+     */
+    public boolean isActive() {
+        return true;
     }
 
     /**

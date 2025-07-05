@@ -14,7 +14,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "com.project.Tadafur_api.shared"
 })
 @EnableJpaRepositories(basePackages = "com.project.Tadafur_api.domain.strategy.repository")
-@EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 public class TadafurApiApplication {
 
     public static void main(String[] args) {

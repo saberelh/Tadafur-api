@@ -13,13 +13,5 @@ import java.util.Optional;
  */
 @Configuration
 public class ApplicationConfig {
-
-    /**
-     * Auditor provider for JPA Auditing
-     * In a real application, this would return the current user from security context
-     */
-    @Bean
-    public AuditorAware<String> auditorProvider() {
-        return () -> Optional.of("system"); // Default to "system" for now
-    }
+    // Remove auditor configuration since we don't have audit fields in database
 }
