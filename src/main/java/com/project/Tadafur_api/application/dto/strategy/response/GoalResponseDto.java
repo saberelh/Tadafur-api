@@ -1,40 +1,38 @@
+// File: src/main/java/com/project/Tadafur_api/application/dto/strategy/response/GoalResponseDto.java
 package com.project.Tadafur_api.application.dto.strategy.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
-
 import java.time.LocalDate;
-import java.util.List;
 
-/**
- * DTO for API responses. Carries translated fields.
- */
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class StrategyResponseDto {
-
+public class GoalResponseDto {
     private Long id;
+    private Long parentId;
+    private Long ownerId;
     private String name;
     private String description;
-    private String vision;
-    private Long ownerId;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate timelineFrom;
+    private LocalDate startDate;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate timelineTo;
+    private LocalDate endDate;
 
+    private String planningStatusCode;
+    private String progressStatusCode;
+    private BigDecimal calculatedProgressPercent;
+    private BigDecimal hybridProgressPercent;
+    private Integer visionPriority;
     private BigDecimal plannedTotalBudget;
     private BigDecimal calculatedTotalBudget;
     private BigDecimal calculatedTotalPayments;
-    private List<Integer> budgetSources;
+    private int[] budgetSources;
+    private Integer ownerNodeId;
 }
