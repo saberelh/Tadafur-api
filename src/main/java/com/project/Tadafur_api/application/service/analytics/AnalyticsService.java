@@ -1,11 +1,8 @@
-// =================================================================================
-// STEP 1: UPDATE THE ANALYTICS SERVICE
-// We will add a new method to loop through all strategies and calculate the health for each one.
-// =================================================================================
-
-// File: src/main/java/com/project/Tadafur_api/application/service/analytics/AnalyticsService.java
 package com.project.Tadafur_api.application.service.analytics;
 
+import com.project.Tadafur_api.application.dto.analytics.PaymentTransactionDto;
+import com.project.Tadafur_api.application.dto.analytics.ProjectSpendingDetailsDto;
+import com.project.Tadafur_api.application.dto.analytics.SpendingSummaryDto;
 import com.project.Tadafur_api.application.dto.analytics.StrategicHealthDto;
 import com.project.Tadafur_api.domain.strategy.entity.*;
 import com.project.Tadafur_api.domain.strategy.repository.*;
@@ -20,6 +17,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,58 +35,95 @@ public class AnalyticsService {
     private final ProgramRepository programRepository;
     private final InitiativeRepository initiativeRepository;
     private final ProjectRepository projectRepository;
+    private final BudgetPaymentRepository budgetPaymentRepository; // Inject the new repository
 
     private static final String DEFAULT_LANG = "en";
 
-    /**
-     * Gets the strategic health for ALL strategies.
-     */
+    // --- NEW: Spending Details API Methods ---
+
+    public List<ProjectSpendingDetailsDto> getSpendingDetails(Long projectId, Long ownerId, String lang) {
+        log.info("Fetching spending details for projectId: [{}] and ownerId: [{}]", projectId, ownerId);
+
+        List<Project> projectsToProcess;
+
+        if (projectId != null) {
+            projectsToProcess = projectRepository.findById(projectId).map(Collections::singletonList).orElse(Collections.emptyList());
+        } else if (ownerId != null) {
+            projectsToProcess = projectRepository.findByOwnerId(ownerId);
+        } else {
+            projectsToProcess = projectRepository.findAll();
+        }
+
+        return projectsToProcess.stream()
+                .map(project -> buildDetailsForProject(project, lang))
+                .collect(Collectors.toList());
+    }
+
+    private ProjectSpendingDetailsDto buildDetailsForProject(Project project, String lang) {
+        // Use the correct repository to find payments
+        List<BudgetPayment> payments = budgetPaymentRepository.findByEntityIdAndEntityCode(project.getId(), "PROJECT");
+
+        List<PaymentTransactionDto> paymentDtos = payments.stream()
+                .map(p -> PaymentTransactionDto.builder()
+                        .id(p.getId())
+                        .paymentDate(p.getPaymentDate())
+                        .amount(p.getAmount())
+                        .englishPaymentNotes(p.getPrimaryPaymentNotes())
+                        .arabicPaymentNotes(p.getSecondaryPaymentNotes())
+                        .createdBy(p.getCreatedBy())
+                        .createdAt(p.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        BigDecimal totalPayments = projectRepository.getSumOfPaymentsForProject(project.getId());
+
+        SpendingSummaryDto summary = SpendingSummaryDto.builder()
+                .plannedTotalBudget(project.getPlannedTotalBudget())
+                .paymentBudget(totalPayments)
+                .build();
+
+        return ProjectSpendingDetailsDto.builder()
+                .projectId(project.getId())
+                .projectName(getTranslatedValue(project.getNameTranslations(), lang, "Unknown Project"))
+                .summary(summary)
+                .payments(paymentDtos)
+                .build();
+    }
+
+    // --- UNCHANGED: Strategic Health Methods ---
+
     public List<StrategicHealthDto> getAllStrategicHealths(String dateRange, String lang) {
         log.info("Calculating strategic health for all strategies.");
         List<Strategy> allStrategies = strategyRepository.findAll();
-
         return allStrategies.stream()
                 .map(strategy -> getStrategicHealth(strategy.getId(), dateRange, lang))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Calculates the health for a SINGLE strategy.
-     */
     public StrategicHealthDto getStrategicHealth(Long strategyId, String dateRange, String lang) {
         log.info("Calculating strategic health for Strategy ID: {}", strategyId);
         String languageCode = Optional.ofNullable(lang).orElse(DEFAULT_LANG);
-
         Strategy strategy = strategyRepository.findById(strategyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strategy", "id", strategyId));
-
-        // 1. Fetch the entire hierarchy of entities
         HierarchyContainer hierarchy = findAllEntitiesForStrategy(strategyId);
-
         if (hierarchy.getProjects().isEmpty()) {
-            log.warn("No projects found for strategy ID: {}. Cannot calculate health.", strategyId);
             return StrategicHealthDto.builder()
                     .strategyId(strategyId)
-                    .strategyName(getTranslatedValue(strategy.getNameTranslations(), languageCode))
+                    .strategyName(getTranslatedValue(strategy.getNameTranslations(), languageCode, "Unknown Strategy"))
                     .healthStatus("No Data")
                     .build();
         }
-
-        // 2. Perform the BI calculations
         BigDecimal overallProgress = calculateOverallProgress(hierarchy.getProjects());
         BigDecimal budgetVariance = calculateBudgetVariance(hierarchy.getProjects());
         Double scheduleVariance = calculateScheduleVariance(hierarchy.getProjects());
-
-        // 3. Determine overall status using the new, more intelligent logic
         String healthStatus = determineHealthStatus(hierarchy, overallProgress, budgetVariance, scheduleVariance);
-
         return StrategicHealthDto.builder()
                 .strategyId(strategyId)
-                .strategyName(getTranslatedValue(strategy.getNameTranslations(), languageCode))
+                .strategyName(getTranslatedValue(strategy.getNameTranslations(), languageCode, "Unknown Strategy"))
                 .overallProgress(overallProgress)
                 .budgetVariance(budgetVariance)
                 .scheduleVarianceDays(scheduleVariance)
-                .activeRisks(0) // Placeholder
+                .activeRisks(0)
                 .healthStatus(healthStatus)
                 .build();
     }
@@ -115,52 +150,31 @@ public class AnalyticsService {
         return container;
     }
 
-    /**
-     * NEW, MORE INTELLIGENT HEALTH STATUS LOGIC
-     * This method now inspects the status codes of all entities in the hierarchy.
-     */
     private String determineHealthStatus(HierarchyContainer hierarchy, BigDecimal progress, BigDecimal budgetVariance, Double scheduleVariance) {
-        // Rule 1: Check for critical planning or progress errors first.
-        // If any entity has a status that is not 'OK', it's an immediate flag.
         boolean hasCriticalError =
-                hierarchy.getPerspectives().stream().anyMatch(e -> !e.getPlanningStatusCode().equalsIgnoreCase("OK")) ||
-                        hierarchy.getGoals().stream().anyMatch(e -> !e.getPlanningStatusCode().equalsIgnoreCase("OK") || !e.getProgressStatusCode().equalsIgnoreCase("OK")) ||
-                        hierarchy.getPrograms().stream().anyMatch(e -> !e.getPlanningStatusCode().equalsIgnoreCase("OK") || !e.getProgressStatusCode().equalsIgnoreCase("OK")) ||
-                        hierarchy.getInitiatives().stream().anyMatch(e -> !e.getPlanningStatusCode().equalsIgnoreCase("OK") || !e.getProgressStatusCode().equalsIgnoreCase("OK")) ||
-                        hierarchy.getProjects().stream().anyMatch(e -> !e.getPlanningStatusCode().equalsIgnoreCase("OK") || !e.getProgressStatusCode().equalsIgnoreCase("OK"));
-
-        if (hasCriticalError) {
-            return "Off-Track"; // A single non-OK status indicates a fundamental problem.
-        }
-
-        // Rule 2: If no critical errors, use the metric-based rules as a secondary check.
-        if (progress.compareTo(new BigDecimal("75")) >= 0 && budgetVariance.compareTo(BigDecimal.ZERO) >= 0 && scheduleVariance <= 0) {
-            return "On-Track";
-        }
-        if (progress.compareTo(new BigDecimal("50")) < 0 || budgetVariance.compareTo(BigDecimal.ZERO) < 0 || scheduleVariance > 15) {
-            return "At-Risk";
-        }
-
-        // Default to On-Track if no other rules are met
+                hierarchy.getPerspectives().stream().anyMatch(e -> !"OK".equalsIgnoreCase(e.getPlanningStatusCode())) ||
+                        hierarchy.getGoals().stream().anyMatch(e -> !"OK".equalsIgnoreCase(e.getPlanningStatusCode()) || !"OK".equalsIgnoreCase(e.getProgressStatusCode())) ||
+                        hierarchy.getPrograms().stream().anyMatch(e -> !"OK".equalsIgnoreCase(e.getPlanningStatusCode()) || !"OK".equalsIgnoreCase(e.getProgressStatusCode())) ||
+                        hierarchy.getInitiatives().stream().anyMatch(e -> !"OK".equalsIgnoreCase(e.getPlanningStatusCode()) || !"OK".equalsIgnoreCase(e.getProgressStatusCode())) ||
+                        hierarchy.getProjects().stream().anyMatch(e -> !"OK".equalsIgnoreCase(e.getPlanningStatusCode()) || !"OK".equalsIgnoreCase(e.getProgressStatusCode()));
+        if (hasCriticalError) return "Off-Track";
+        if (progress.compareTo(new BigDecimal("75")) >= 0 && budgetVariance.compareTo(BigDecimal.ZERO) >= 0 && scheduleVariance <= 0) return "On-Track";
+        if (progress.compareTo(new BigDecimal("50")) < 0 || budgetVariance.compareTo(BigDecimal.ZERO) < 0 || scheduleVariance > 15) return "At-Risk";
         return "On-Track";
     }
 
-    // Helper class to hold all entities in the hierarchy
     private static class HierarchyContainer {
         List<Perspective> perspectives = new ArrayList<>();
         List<Goal> goals = new ArrayList<>();
         List<Program> programs = new ArrayList<>();
         List<Initiative> initiatives = new ArrayList<>();
         List<Project> projects = new ArrayList<>();
-
         public List<Perspective> getPerspectives() { return perspectives; }
         public List<Goal> getGoals() { return goals; }
         public List<Program> getPrograms() { return programs; }
         public List<Initiative> getInitiatives() { return initiatives; }
         public List<Project> getProjects() { return projects; }
     }
-
-    // --- Calculation methods remain the same ---
 
     private BigDecimal calculateOverallProgress(List<Project> projects) {
         if (projects.isEmpty()) return BigDecimal.ZERO;
@@ -182,30 +196,22 @@ public class AnalyticsService {
 
     private Double calculateScheduleVariance(List<Project> projects) {
         LocalDate today = LocalDate.now();
-        long totalDelayDays = 0;
         long delayedProjectsCount = projects.stream()
-                .filter(p -> {
-                    boolean isInProgress = p.getProgressStatusCode() != null && !p.getProgressStatusCode().equalsIgnoreCase("COMPLETED");
-                    return isInProgress && p.getEndDate() != null && today.isAfter(p.getEndDate());
-                })
+                .filter(p -> p.getProgressStatusCode() != null && !"COMPLETED".equalsIgnoreCase(p.getProgressStatusCode()))
+                .filter(p -> p.getEndDate() != null && today.isAfter(p.getEndDate()))
                 .count();
-
         if (delayedProjectsCount == 0) return 0.0;
-
-        totalDelayDays = projects.stream()
-                .filter(p -> {
-                    boolean isInProgress = p.getProgressStatusCode() != null && !p.getProgressStatusCode().equalsIgnoreCase("COMPLETED");
-                    return isInProgress && p.getEndDate() != null && today.isAfter(p.getEndDate());
-                })
+        long totalDelayDays = projects.stream()
+                .filter(p -> p.getProgressStatusCode() != null && !"COMPLETED".equalsIgnoreCase(p.getProgressStatusCode()))
+                .filter(p -> p.getEndDate() != null && today.isAfter(p.getEndDate()))
                 .mapToLong(p -> ChronoUnit.DAYS.between(p.getEndDate(), today))
                 .sum();
-
         return (double) totalDelayDays / delayedProjectsCount;
     }
 
-    private String getTranslatedValue(Map<String, String> translations, String lang) {
+    private String getTranslatedValue(Map<String, String> translations, String lang, String fallback) {
         return Optional.ofNullable(translations)
-                .map(map -> map.getOrDefault(lang, map.get(DEFAULT_LANG)))
-                .orElse(null);
+                .map(map -> map.getOrDefault(lang, map.get("en")))
+                .orElse(fallback);
     }
 }
