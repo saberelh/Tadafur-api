@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -24,24 +25,43 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
+    /**
+     * NEW ENDPOINT: Supports optional filtering by ownerId.
+     * - /api/v1/projects -> returns all projects.
+     * - /api/v1/projects?ownerId=123 -> returns projects for owner 123.
+     */
+    @GetMapping
+    @Operation(summary = "Get All Projects with Optional Owner Filter (Multi-Language)")
+    public ResponseEntity<List<ProjectResponseDto>> getProjects(
+            @Parameter(description = "Optional: Filter projects by the ID of the owner.")
+            @RequestParam(required = false) Long ownerId,
+            @Parameter(description = "Language code for translation.")
+            @RequestParam(defaultValue = "en") String lang) {
+
+        log.info("Received GET request for projects with ownerId: {}", Optional.ofNullable(ownerId).map(String::valueOf).orElse("ALL"));
+        return ResponseEntity.ok(projectService.getProjects(Optional.ofNullable(ownerId), lang));
+    }
+
+    /**
+     * UNCHANGED ENDPOINT
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Get a Project by ID (Multi-Language)")
     public ResponseEntity<ProjectResponseDto> getProjectById(
-            @Parameter(description = "Unique identifier of the project.", example = "1")
-            @PathVariable Long id,
-            @Parameter(description = "Language code for translation.", example = "en")
-            @RequestParam(defaultValue = "en") String lang) {
+            @Parameter(description = "Unique identifier of the project.") @PathVariable Long id,
+            @Parameter(description = "Language code for translation.") @RequestParam(defaultValue = "en") String lang) {
         log.info("Received GET request for project ID: {} with language: {}", id, lang);
         return ResponseEntity.ok(projectService.getById(id, lang));
     }
 
+    /**
+     * UNCHANGED ENDPOINT
+     */
     @GetMapping("/by-initiative/{initiativeId}")
     @Operation(summary = "Get all Projects for an Initiative (Multi-Language)")
     public ResponseEntity<List<ProjectResponseDto>> getProjectsByInitiative(
-            @Parameter(description = "The ID of the parent initiative.", example = "1")
-            @PathVariable Long initiativeId,
-            @Parameter(description = "Language code for translation.", example = "ar")
-            @RequestParam(defaultValue = "en") String lang) {
+            @Parameter(description = "The ID of the parent initiative.") @PathVariable Long initiativeId,
+            @Parameter(description = "Language code for translation.") @RequestParam(defaultValue = "en") String lang) {
         log.info("Received GET request for projects by initiative ID: {}", initiativeId);
         return ResponseEntity.ok(projectService.getByInitiativeId(initiativeId, lang));
     }

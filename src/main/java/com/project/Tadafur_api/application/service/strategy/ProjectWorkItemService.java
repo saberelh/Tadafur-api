@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -23,7 +24,23 @@ public class ProjectWorkItemService {
     private final ProjectWorkItemMapper workItemMapper;
 
     /**
-     * Gets a single work item by its ID, translated to the specified language.
+     * THIS IS THE MISSING METHOD THAT IS NOW ADDED.
+     * It gets work items based on an optional assignee user ID.
+     */
+    public List<ProjectWorkItemResponseDto> getWorkItems(Optional<Integer> assigneeUserId, String lang) {
+        List<ProjectWorkItem> workItems;
+        if (assigneeUserId.isPresent()) {
+            log.info("Fetching work items for assignee user ID: {}", assigneeUserId.get());
+            workItems = workItemRepository.findByAssigneeUserId(assigneeUserId.get());
+        } else {
+            log.info("Fetching all work items.");
+            workItems = workItemRepository.findAll();
+        }
+        return workItemMapper.toResponseDtoList(workItems, lang);
+    }
+
+    /**
+     * UNCHANGED METHOD: Gets a single work item by its ID.
      */
     public ProjectWorkItemResponseDto getById(Long id, String lang) {
         log.info("Fetching work item with ID: {} for language: {}", id, lang);
@@ -33,7 +50,7 @@ public class ProjectWorkItemService {
     }
 
     /**
-     * Gets all work items belonging to a specific project, translated.
+     * UNCHANGED METHOD: Gets all work items belonging to a specific project.
      */
     public List<ProjectWorkItemResponseDto> getByProjectId(Long projectId, String lang) {
         log.info("Fetching work items for project ID: {} and language: {}", projectId, lang);
@@ -41,3 +58,4 @@ public class ProjectWorkItemService {
         return workItemMapper.toResponseDtoList(workItems, lang);
     }
 }
+

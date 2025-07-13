@@ -10,7 +10,12 @@ import java.util.List;
 @Repository
 public interface PerspectiveRepository extends JpaRepository<Perspective, Long> {
 
-    // Spring Data JPA automatically creates the query from the method name:
-    // "SELECT * FROM perspective WHERE parent_id = ?"
+    // THIS METHOD IS UNCHANGED: It finds all perspectives for a specific strategy.
     List<Perspective> findByParentId(Long parentId);
+
+    /**
+     * NEW METHOD: Finds all perspectives owned by a specific authority.
+     * This will be used for the new ownerId filter.
+     */
+    List<Perspective> findByOwnerId(Long ownerId);
 }

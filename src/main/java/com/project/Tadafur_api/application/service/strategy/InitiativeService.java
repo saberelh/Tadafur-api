@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -23,7 +24,22 @@ public class InitiativeService {
     private final InitiativeMapper initiativeMapper;
 
     /**
-     * Gets a single initiative by its ID, translated to the specified language.
+     * NEW METHOD: Gets initiatives based on an optional owner ID.
+     */
+    public List<InitiativeResponseDto> getInitiatives(Optional<Long> ownerId, String lang) {
+        List<Initiative> initiatives;
+        if (ownerId.isPresent()) {
+            log.info("Fetching initiatives for owner ID: {}", ownerId.get());
+            initiatives = initiativeRepository.findByOwnerId(ownerId.get());
+        } else {
+            log.info("Fetching all initiatives.");
+            initiatives = initiativeRepository.findAll();
+        }
+        return initiativeMapper.toResponseDtoList(initiatives, lang);
+    }
+
+    /**
+     * UNCHANGED METHOD: Gets a single initiative by its ID.
      */
     public InitiativeResponseDto getById(Long id, String lang) {
         log.info("Fetching initiative with ID: {} for language: {}", id, lang);
@@ -33,7 +49,7 @@ public class InitiativeService {
     }
 
     /**
-     * Gets all initiatives belonging to a specific program, translated.
+     * UNCHANGED METHOD: Gets all initiatives belonging to a specific program.
      */
     public List<InitiativeResponseDto> getByProgramId(Long programId, String lang) {
         log.info("Fetching initiatives for program ID: {} and language: {}", programId, lang);

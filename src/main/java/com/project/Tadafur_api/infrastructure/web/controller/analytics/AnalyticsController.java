@@ -1,11 +1,7 @@
-// =================================================================================
-// STEP 2: UPDATE THE ANALYTICS CONTROLLER
-// We will add a new endpoint to expose the new service method.
-// =================================================================================
-
 // File: src/main/java/com/project/Tadafur_api/infrastructure/web/controller/analytics/AnalyticsController.java
 package com.project.Tadafur_api.infrastructure.web.controller.analytics;
 
+import com.project.Tadafur_api.application.dto.analytics.ProjectSpendingTrendDto;
 import com.project.Tadafur_api.application.dto.analytics.StrategicHealthDto;
 import com.project.Tadafur_api.application.service.analytics.AnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -30,31 +27,37 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
 
     /**
-     * NEW ENDPOINT: Gets a health summary for ALL strategies.
+     * REFACTORED ENDPOINT: Gets a health summary for strategies, with an optional owner filter.
+     * - /api/analytics/strategic-health -> returns health for ALL strategies.
+     * - /api/analytics/strategic-health?ownerId=123 -> returns health for owner 123's strategies.
      */
     @GetMapping("/strategic-health")
-    @Operation(summary = "Get Health Summary for All Strategies",
-            description = "Returns a list containing a health summary (KPIs) for every strategy in the system.")
-    public ResponseEntity<List<StrategicHealthDto>> getAllStrategicHealths(
-            @Parameter(description = "The time period for the analysis (e.g., 'current'). Currently a placeholder.", example = "current")
+    @Operation(summary = "Get Health Summary for Strategies (Optional Owner Filter)",
+            description = "Returns a list of health summaries (KPIs). If ownerId is provided, it filters for that owner.")
+    public ResponseEntity<List<StrategicHealthDto>> getStrategicHealths(
+            @Parameter(description = "Optional: Filter by the ID of the owner.")
+            @RequestParam(required = false) Long ownerId,
+            @Parameter(description = "The time period for the analysis (e.g., 'current'). Currently a placeholder.")
             @RequestParam(defaultValue = "current") String dateRange,
-            @Parameter(description = "Language code for the strategy names.", example = "en")
+            @Parameter(description = "Language code for the strategy names.")
             @RequestParam(defaultValue = "en") String lang) {
-        log.info("Received request for all strategic health summaries.");
-        return ResponseEntity.ok(analyticsService.getAllStrategicHealths(dateRange, lang));
+
+        log.info("Received request for strategic health summaries with ownerId: {}", Optional.ofNullable(ownerId).map(String::valueOf).orElse("ALL"));
+        return ResponseEntity.ok(analyticsService.getStrategicHealths(Optional.ofNullable(ownerId), dateRange, lang));
     }
 
-    @GetMapping("/strategic-health/{strategyId}")
-    @Operation(summary = "Get Overall Strategic Health for a Single Strategy",
-            description = "Calculates high-level KPIs for a given strategy, including progress, budget, and schedule health.")
-    public ResponseEntity<StrategicHealthDto> getStrategicHealth(
-            @Parameter(description = "The ID of the root strategy.", example = "1")
-            @PathVariable Long strategyId,
-            @Parameter(description = "The time period for the analysis. Currently a placeholder.", example = "current")
-            @RequestParam(defaultValue = "current") String dateRange,
-            @Parameter(description = "Language code for the strategy name.", example = "en")
+    @GetMapping("/trends/spending-vs-plan")
+    @Operation(summary = "Get Spending vs. Plan Trend for Projects",
+            description = "Returns time-series data comparing cumulative actual spend vs. cumulative planned spend. " +
+                    "Can be filtered by a specific ownerId or a single projectId.")
+    public ResponseEntity<List<ProjectSpendingTrendDto>> getSpendingVsPlan(
+            @Parameter(description = "Optional: Filter by the ID of the owner.")
+            @RequestParam(required = false) Long ownerId,
+            @Parameter(description = "Optional: Filter for a single project by its ID.")
+            @RequestParam(required = false) Long projectId,
+            @Parameter(description = "Language code for project names.")
             @RequestParam(defaultValue = "en") String lang) {
-        log.info("Received request for strategic health of strategy ID: {}", strategyId);
-        return ResponseEntity.ok(analyticsService.getStrategicHealth(strategyId, dateRange, lang));
+
+        return ResponseEntity.ok(analyticsService.getSpendingVsPlanTrend(Optional.ofNullable(ownerId), Optional.ofNullable(projectId), lang));
     }
 }

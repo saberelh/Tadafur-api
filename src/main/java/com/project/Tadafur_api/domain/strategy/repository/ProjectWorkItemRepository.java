@@ -10,7 +10,11 @@ import java.util.List;
 @Repository
 public interface ProjectWorkItemRepository extends JpaRepository<ProjectWorkItem, Long> {
 
-    // Finds all work items linked to a specific project ID
-    // We use projectId here because that's the field name in the entity
+    // This method is unchanged: It finds all work items for a specific project.
     List<ProjectWorkItem> findByProjectId(Long projectId);
+
+    /**
+     * NEW METHOD: Finds all work items assigned to a specific user.
+     */
+    List<ProjectWorkItem> findByAssigneeUserId(Integer assigneeUserId);
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -23,7 +24,22 @@ public class GoalService {
     private final GoalMapper goalMapper;
 
     /**
-     * Gets a single goal by its ID, translated to the specified language.
+     * NEW METHOD: Gets goals based on an optional owner ID.
+     */
+    public List<GoalResponseDto> getGoals(Optional<Long> ownerId, String lang) {
+        List<Goal> goals;
+        if (ownerId.isPresent()) {
+            log.info("Fetching goals for owner ID: {}", ownerId.get());
+            goals = goalRepository.findByOwnerId(ownerId.get());
+        } else {
+            log.info("Fetching all goals.");
+            goals = goalRepository.findAll();
+        }
+        return goalMapper.toResponseDtoList(goals, lang);
+    }
+
+    /**
+     * UNCHANGED METHOD: Gets a single goal by its ID.
      */
     public GoalResponseDto getById(Long id, String lang) {
         log.info("Fetching goal with ID: {} for language: {}", id, lang);
@@ -33,7 +49,7 @@ public class GoalService {
     }
 
     /**
-     * Gets all goals belonging to a specific perspective, translated.
+     * UNCHANGED METHOD: Gets all goals belonging to a specific perspective.
      */
     public List<GoalResponseDto> getByPerspectiveId(Long perspectiveId, String lang) {
         log.info("Fetching goals for perspective ID: {} and language: {}", perspectiveId, lang);

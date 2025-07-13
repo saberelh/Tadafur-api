@@ -10,6 +10,11 @@ import java.util.List;
 @Repository
 public interface ProgramRepository extends JpaRepository<Program, Long> {
 
-    // Finds all programs linked to a specific goal ID
+    // This method is unchanged: It finds all programs for a specific goal.
     List<Program> findByParentId(Long parentId);
+
+    /**
+     * NEW METHOD: Finds all programs owned by a specific authority.
+     */
+    List<Program> findByOwnerId(Long ownerId);
 }

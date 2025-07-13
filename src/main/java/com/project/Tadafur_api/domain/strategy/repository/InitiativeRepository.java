@@ -10,6 +10,11 @@ import java.util.List;
 @Repository
 public interface InitiativeRepository extends JpaRepository<Initiative, Long> {
 
-    // Finds all initiatives linked to a specific program ID
+    // This method is unchanged: It finds all initiatives for a specific program.
     List<Initiative> findByParentId(Long parentId);
+
+    /**
+     * NEW METHOD: Finds all initiatives owned by a specific authority.
+     */
+    List<Initiative> findByOwnerId(Long ownerId);
 }

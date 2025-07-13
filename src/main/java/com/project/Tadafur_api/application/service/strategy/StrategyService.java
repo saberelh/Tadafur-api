@@ -1,3 +1,4 @@
+// File: src/main/java/com/project/Tadafur_api/application/service/strategy/StrategyService.java
 package com.project.Tadafur_api.application.service.strategy;
 
 import com.project.Tadafur_api.application.dto.strategy.response.StrategyResponseDto;
@@ -11,10 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
-/**
- * Service layer containing business logic for Strategy operations.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -25,26 +24,29 @@ public class StrategyService {
     private final StrategyMapper strategyMapper;
 
     /**
-     * Gets a single strategy by ID, translated to the specified language.
-     * @param id The ID of the strategy.
-     * @param lang The language code (e.g., 'en', 'ar').
-     * @return The translated Strategy DTO.
+     * REFACTORED METHOD: Gets strategies based on an optional owner ID.
+     * If ownerId is provided, it filters by that owner.
+     * If ownerId is absent, it returns all strategies.
+     */
+    public List<StrategyResponseDto> getStrategies(Optional<Long> ownerId, String lang) {
+        List<Strategy> strategies;
+        if (ownerId.isPresent()) {
+            log.info("Fetching strategies for owner ID: {}", ownerId.get());
+            strategies = strategyRepository.findByOwnerId(ownerId.get());
+        } else {
+            log.info("Fetching all strategies.");
+            strategies = strategyRepository.findAll();
+        }
+        return strategyMapper.toResponseDtoList(strategies, lang);
+    }
+
+    /**
+     * Gets a single strategy by its ID. (This method is unchanged).
      */
     public StrategyResponseDto getById(Long id, String lang) {
         log.info("Fetching strategy with ID: {} for language: {}", id, lang);
         Strategy strategy = strategyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Strategy", "id", id));
         return strategyMapper.toResponseDto(strategy, lang);
-    }
-
-    /**
-     * Gets all strategies, translated to the specified language.
-     * @param lang The language code (e.g., 'en', 'ar').
-     * @return A list of translated Strategy DTOs.
-     */
-    public List<StrategyResponseDto> getAll(String lang) {
-        log.info("Fetching all strategies for language: {}", lang);
-        List<Strategy> strategies = strategyRepository.findAll();
-        return strategyMapper.toResponseDtoList(strategies, lang);
     }
 }
