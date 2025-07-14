@@ -32,6 +32,35 @@ public class HierarchyService {
 
     private static final String DEFAULT_LANG = "en";
 
+    /**
+     * NEW METHOD: Finds all strategies for a given owner and builds a full
+     * hierarchy for each one.
+     *
+     * @param ownerId The ID of the owner (Authority).
+     * @param lang The language code for translation.
+     * @return A list of fully populated strategy hierarchies.
+     */
+    public List<StrategyHierarchyDto> getHierarchiesByOwner(Long ownerId, String lang) {
+        log.info("Fetching all strategy hierarchies for owner ID: {}", ownerId);
+
+        // 1. Find all strategies belonging to the specified owner.
+        List<Strategy> ownerStrategies = strategyRepository.findByOwnerId(ownerId);
+
+        if (ownerStrategies.isEmpty()) {
+            log.warn("No strategies found for owner ID: {}", ownerId);
+            return Collections.emptyList();
+        }
+
+        // 2. For each strategy, call the existing getFullHierarchy method and collect the results.
+        return ownerStrategies.stream()
+                .map(strategy -> getFullHierarchy(strategy.getId(), lang))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * UNCHANGED METHOD: Gets the full hierarchy for a single strategy.
+     * This is now a reusable helper method for the new getHierarchiesByOwner method.
+     */
     public StrategyHierarchyDto getFullHierarchy(Long strategyId, String lang) {
         log.info("Building full hierarchy for Strategy ID: {}", strategyId);
         String languageCode = Optional.ofNullable(lang).orElse(DEFAULT_LANG);
@@ -46,6 +75,8 @@ public class HierarchyService {
                 .perspectives(buildPerspectiveHierarchy(strategy.getId(), languageCode))
                 .build();
     }
+
+    // --- All private helper methods for building the hierarchy remain unchanged ---
 
     private List<PerspectiveHierarchyDto> buildPerspectiveHierarchy(Long strategyId, String lang) {
         List<Perspective> perspectives = perspectiveRepository.findByParentId(strategyId);
@@ -118,4 +149,3 @@ public class HierarchyService {
                 .orElse(null);
     }
 }
-

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -23,7 +24,23 @@ public class PerspectiveService {
     private final PerspectiveMapper perspectiveMapper;
 
     /**
-     * Gets a single perspective by its ID, translated to the specified language.
+     * NEW METHOD: Gets perspectives based on an optional owner ID.
+     * If ownerId is provided, it filters. If not, it returns all.
+     */
+    public List<PerspectiveResponseDto> getPerspectives(Optional<Long> ownerId, String lang) {
+        List<Perspective> perspectives;
+        if (ownerId.isPresent()) {
+            log.info("Fetching perspectives for owner ID: {}", ownerId.get());
+            perspectives = perspectiveRepository.findByOwnerId(ownerId.get());
+        } else {
+            log.info("Fetching all perspectives.");
+            perspectives = perspectiveRepository.findAll();
+        }
+        return perspectiveMapper.toResponseDtoList(perspectives, lang);
+    }
+
+    /**
+     * UNCHANGED METHOD: Gets a single perspective by its ID.
      */
     public PerspectiveResponseDto getById(Long id, String lang) {
         log.info("Fetching perspective with ID: {} for language: {}", id, lang);
@@ -33,7 +50,7 @@ public class PerspectiveService {
     }
 
     /**
-     * Gets all perspectives belonging to a specific strategy, translated.
+     * UNCHANGED METHOD: Gets all perspectives belonging to a specific strategy.
      */
     public List<PerspectiveResponseDto> getByStrategyId(Long strategyId, String lang) {
         log.info("Fetching perspectives for strategy ID: {} and language: {}", strategyId, lang);

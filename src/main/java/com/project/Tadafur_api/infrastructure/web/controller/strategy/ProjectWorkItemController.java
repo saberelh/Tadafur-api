@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -24,13 +25,24 @@ public class ProjectWorkItemController {
 
     private final ProjectWorkItemService workItemService;
 
+    @GetMapping
+    @Operation(summary = "Get All Work Items with Optional Assignee Filter (Multi-Language)")
+    public ResponseEntity<List<ProjectWorkItemResponseDto>> getWorkItems(
+            @Parameter(description = "Optional: Filter work items by the ID of the assignee user.")
+            @RequestParam(required = false) Integer assigneeUserId,
+            @Parameter(description = "Language code for translation.")
+            @RequestParam(defaultValue = "en") String lang) {
+
+        log.info("Received GET request for work items with assigneeUserId: {}", Optional.ofNullable(assigneeUserId).map(String::valueOf).orElse("ALL"));
+        // This line will now compile correctly
+        return ResponseEntity.ok(workItemService.getWorkItems(Optional.ofNullable(assigneeUserId), lang));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get a Work Item by ID (Multi-Language)")
     public ResponseEntity<ProjectWorkItemResponseDto> getWorkItemById(
-            @Parameter(description = "Unique identifier of the work item.", example = "1")
-            @PathVariable Long id,
-            @Parameter(description = "Language code for translation.", example = "en")
-            @RequestParam(defaultValue = "en") String lang) {
+            @Parameter(description = "Unique identifier of the work item.") @PathVariable Long id,
+            @Parameter(description = "Language code for translation.") @RequestParam(defaultValue = "en") String lang) {
         log.info("Received GET request for work item ID: {} with language: {}", id, lang);
         return ResponseEntity.ok(workItemService.getById(id, lang));
     }
@@ -38,10 +50,8 @@ public class ProjectWorkItemController {
     @GetMapping("/by-project/{projectId}")
     @Operation(summary = "Get all Work Items for a Project (Multi-Language)")
     public ResponseEntity<List<ProjectWorkItemResponseDto>> getWorkItemsByProject(
-            @Parameter(description = "The ID of the parent project.", example = "1")
-            @PathVariable Long projectId,
-            @Parameter(description = "Language code for translation.", example = "ar")
-            @RequestParam(defaultValue = "en") String lang) {
+            @Parameter(description = "The ID of the parent project.") @PathVariable Long projectId,
+            @Parameter(description = "Language code for translation.") @RequestParam(defaultValue = "en") String lang) {
         log.info("Received GET request for work items by project ID: {}", projectId);
         return ResponseEntity.ok(workItemService.getByProjectId(projectId, lang));
     }

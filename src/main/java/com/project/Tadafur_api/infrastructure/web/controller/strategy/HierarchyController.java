@@ -1,3 +1,4 @@
+
 // File: src/main/java/com/project/Tadafur_api/infrastructure/web/controller/strategy/HierarchyController.java
 package com.project.Tadafur_api.infrastructure.web.controller.strategy;
 
@@ -14,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/hierarchy")
@@ -24,9 +27,28 @@ public class HierarchyController {
 
     private final HierarchyService hierarchyService;
 
+    /**
+     * NEW ENDPOINT
+     */
+    @GetMapping("/by-owner/{ownerId}")
+    @Operation(summary = "Get All Strategy Hierarchies for a Specific Owner",
+            description = "Retrieves a list of full hierarchies, one for each strategy owned by the specified authority.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved the list of hierarchies."),
+            @ApiResponse(responseCode = "404", description = "Owner (Authority) not found for the given ID.")
+    })
+    public ResponseEntity<List<StrategyHierarchyDto>> getHierarchiesByOwner(
+            @Parameter(description = "The ID of the owner (Authority).", example = "2172")
+            @PathVariable Long ownerId,
+            @Parameter(description = "Language code for translation.", example = "en")
+            @RequestParam(defaultValue = "en") String lang) {
+        log.info("Received GET request for all hierarchies for owner ID: {}", ownerId);
+        return ResponseEntity.ok(hierarchyService.getHierarchiesByOwner(ownerId, lang));
+    }
+
     @GetMapping("/strategy/{strategyId}")
-    @Operation(summary = "Get Full Strategy Hierarchy (Multi-Language)",
-            description = "Retrieves a strategy and all of its descendants (perspectives, goals, etc.) in a nested structure.")
+    @Operation(summary = "Get Full Hierarchy for a Single Strategy",
+            description = "Retrieves a single strategy and all of its descendants in a nested structure.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Hierarchy successfully retrieved."),
             @ApiResponse(responseCode = "404", description = "Strategy not found for the given ID.")

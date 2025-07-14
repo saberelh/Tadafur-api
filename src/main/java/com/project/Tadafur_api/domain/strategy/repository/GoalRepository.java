@@ -10,6 +10,12 @@ import java.util.List;
 @Repository
 public interface GoalRepository extends JpaRepository<Goal, Long> {
 
-    // Finds all goals linked to a specific perspective ID
+    // This method is unchanged: It finds all goals for a specific perspective.
     List<Goal> findByParentId(Long parentId);
+
+    /**
+     * NEW METHOD: Finds all goals owned by a specific authority.
+     * This will be used for the new ownerId filter.
+     */
+    List<Goal> findByOwnerId(Long ownerId);
 }
