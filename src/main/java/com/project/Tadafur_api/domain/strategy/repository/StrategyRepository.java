@@ -3,7 +3,10 @@ package com.project.Tadafur_api.domain.strategy.repository;
 
 import com.project.Tadafur_api.domain.strategy.entity.Strategy;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+
 
 import java.util.List;
 
@@ -13,4 +16,5 @@ public interface StrategyRepository extends JpaRepository<Strategy, Long> {
     // Finds all strategies owned by a specific authority.
     // Used when the ownerId filter is present.
     List<Strategy> findByOwnerId(Long ownerId);
-}
+
+   }

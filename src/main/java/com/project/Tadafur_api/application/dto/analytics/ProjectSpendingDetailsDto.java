@@ -2,7 +2,6 @@ package com.project.Tadafur_api.application.dto.analytics;
 
 import lombok.Builder;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.util.List;
 
 /**

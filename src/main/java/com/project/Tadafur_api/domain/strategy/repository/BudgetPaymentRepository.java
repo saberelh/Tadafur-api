@@ -8,7 +8,5 @@ import java.util.List;
 
 @Repository
 public interface BudgetPaymentRepository extends JpaRepository<BudgetPayment, Long> {
-
-    /**
-     */
+    List<BudgetPayment> findByEntityIdAndEntityCode(Long entityId, String entityCode);
 }

@@ -1,11 +1,6 @@
-// =================================================================================
-// STEP 2: UPDATE THE ANALYTICS CONTROLLER
-// We will add a new endpoint to expose the new service method.
-// =================================================================================
-
-// File: src/main/java/com/project/Tadafur_api/infrastructure/web/controller/analytics/AnalyticsController.java
 package com.project.Tadafur_api.infrastructure.web.controller.analytics;
 
+import com.project.Tadafur_api.application.dto.analytics.ProjectSpendingDetailsDto;
 import com.project.Tadafur_api.application.dto.analytics.StrategicHealthDto;
 import com.project.Tadafur_api.application.service.analytics.AnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,12 +24,23 @@ public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
 
-    /**
-     * NEW ENDPOINT: Gets a health summary for ALL strategies.
-     */
+    @GetMapping("/trends/spending-details")
+    @Operation(summary = "Get Detailed Spending Information for Projects",
+            description = "Returns a list of projects, each with its own summary totals and a full list of all payment transactions.")
+    public ResponseEntity<List<ProjectSpendingDetailsDto>> getSpendingDetails(
+            @Parameter(description = "Optional: The ID of the project to filter by.", example = "1")
+            @RequestParam(required = false) Long id,
+            @Parameter(description = "Optional: The ID of the owner to filter by.", example = "101")
+            @RequestParam(required = false) Long ownerId,
+            @Parameter(description = "Language code for the project names.", example = "en")
+            @RequestParam(defaultValue = "en") String lang) {
+
+        List<ProjectSpendingDetailsDto> spendingDetails = analyticsService.getSpendingDetails(id, ownerId, lang);
+        return ResponseEntity.ok(spendingDetails);
+    }
+
     @GetMapping("/strategic-health")
-    @Operation(summary = "Get Health Summary for All Strategies",
-            description = "Returns a list containing a health summary (KPIs) for every strategy in the system.")
+    @Operation(summary = "Get Health Summary for All Strategies")
     public ResponseEntity<List<StrategicHealthDto>> getAllStrategicHealths(
             @Parameter(description = "The time period for the analysis (e.g., 'current'). Currently a placeholder.", example = "current")
             @RequestParam(defaultValue = "current") String dateRange,
@@ -45,8 +51,7 @@ public class AnalyticsController {
     }
 
     @GetMapping("/strategic-health/{strategyId}")
-    @Operation(summary = "Get Overall Strategic Health for a Single Strategy",
-            description = "Calculates high-level KPIs for a given strategy, including progress, budget, and schedule health.")
+    @Operation(summary = "Get Overall Strategic Health for a Single Strategy")
     public ResponseEntity<StrategicHealthDto> getStrategicHealth(
             @Parameter(description = "The ID of the root strategy.", example = "1")
             @PathVariable Long strategyId,
