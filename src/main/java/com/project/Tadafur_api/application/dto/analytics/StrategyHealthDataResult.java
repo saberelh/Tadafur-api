@@ -4,8 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * A flat DTO to hold the combined results for the strategic health query.
- * Each instance represents one project's contribution to a strategy's health.
+ * A DTO Interface (Projection) to map the results from the native SQL query
+ * for strategic health. This ensures the data is correctly typed when it
+ * comes from the database into the Java service.
  */
 public interface StrategyHealthDataResult {
     Long getStrategyId();
