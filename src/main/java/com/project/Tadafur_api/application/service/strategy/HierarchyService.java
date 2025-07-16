@@ -1,6 +1,8 @@
 // File: src/main/java/com/project/Tadafur_api/application/service/strategy/HierarchyService.java
 package com.project.Tadafur_api.application.service.strategy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.Tadafur_api.application.dto.strategy.response.hierarchy.*;
 import com.project.Tadafur_api.domain.strategy.entity.*;
 import com.project.Tadafur_api.domain.strategy.repository.*;
@@ -147,5 +149,99 @@ public class HierarchyService {
         return Optional.ofNullable(translations)
                 .map(map -> map.getOrDefault(lang, map.get(DEFAULT_LANG)))
                 .orElse(null);
+    }
+
+    public List<StrategyHierarchyDto> getFastFullHierarchy(Long strategyId, Long ownerId, String lang) {
+        log.info("Building full hierarchy efficiently with strategyId: {} and ownerId: {}", strategyId, ownerId);
+        List<StrategyRepository.FlatHierarchyResult> flatData = strategyRepository.getFlatHierarchy(strategyId, ownerId);
+
+        if (flatData.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, List<StrategyRepository.FlatHierarchyResult>> groupedByStrategy = flatData.stream()
+                .collect(Collectors.groupingBy(StrategyRepository.FlatHierarchyResult::getStrategyId));
+
+        return groupedByStrategy.values().stream()
+                .map(strategyData -> buildStrategy(strategyData, lang))
+                .collect(Collectors.toList());
+    }
+
+    private StrategyHierarchyDto buildStrategy(List<StrategyRepository.FlatHierarchyResult> strategyData, String lang) {
+        StrategyRepository.FlatHierarchyResult firstRecord = strategyData.get(0);
+        Map<Long, List<StrategyRepository.FlatHierarchyResult>> perspectives = strategyData.stream()
+                .filter(r -> r.getPerspectiveId() != null)
+                .collect(Collectors.groupingBy(StrategyRepository.FlatHierarchyResult::getPerspectiveId));
+        return StrategyHierarchyDto.builder()
+                .id(firstRecord.getStrategyId())
+                .name(getTranslatedValue(firstRecord.getStrategyName(), lang))
+                .perspectives(perspectives.values().stream().map(data -> buildPerspective(data, lang)).collect(Collectors.toList()))
+                .build();
+    }
+
+    private PerspectiveHierarchyDto buildPerspective(List<StrategyRepository.FlatHierarchyResult> perspectiveData, String lang) {
+        StrategyRepository.FlatHierarchyResult firstRecord = perspectiveData.get(0);
+        Map<Long, List<StrategyRepository.FlatHierarchyResult>> goals = perspectiveData.stream()
+                .filter(r -> r.getGoalId() != null)
+                .collect(Collectors.groupingBy(StrategyRepository.FlatHierarchyResult::getGoalId));
+        return PerspectiveHierarchyDto.builder()
+                .id(firstRecord.getPerspectiveId())
+                .name(getTranslatedValue(firstRecord.getPerspectiveName(), lang))
+                .goals(goals.values().stream().map(data -> buildGoal(data, lang)).collect(Collectors.toList()))
+                .build();
+    }
+
+    private GoalHierarchyDto buildGoal(List<StrategyRepository.FlatHierarchyResult> goalData, String lang) {
+        StrategyRepository.FlatHierarchyResult firstRecord = goalData.get(0);
+        Map<Long, List<StrategyRepository.FlatHierarchyResult>> programs = goalData.stream()
+                .filter(r -> r.getProgramId() != null)
+                .collect(Collectors.groupingBy(StrategyRepository.FlatHierarchyResult::getProgramId));
+        return GoalHierarchyDto.builder()
+                .id(firstRecord.getGoalId())
+                .name(getTranslatedValue(firstRecord.getGoalName(), lang))
+                .programs(programs.values().stream().map(data -> buildProgram(data, lang)).collect(Collectors.toList()))
+                .build();
+    }
+
+    private ProgramHierarchyDto buildProgram(List<StrategyRepository.FlatHierarchyResult> programData, String lang) {
+        StrategyRepository.FlatHierarchyResult firstRecord = programData.get(0);
+        Map<Long, List<StrategyRepository.FlatHierarchyResult>> initiatives = programData.stream()
+                .filter(r -> r.getInitiativeId() != null)
+                .collect(Collectors.groupingBy(StrategyRepository.FlatHierarchyResult::getInitiativeId));
+        return ProgramHierarchyDto.builder()
+                .id(firstRecord.getProgramId())
+                .name(getTranslatedValue(firstRecord.getProgramName(), lang))
+                .initiatives(initiatives.values().stream().map(data -> buildInitiative(data, lang)).collect(Collectors.toList()))
+                .build();
+    }
+
+    private InitiativeHierarchyDto buildInitiative(List<StrategyRepository.FlatHierarchyResult> initiativeData, String lang) {
+        StrategyRepository.FlatHierarchyResult firstRecord = initiativeData.get(0);
+        Map<Long, List<StrategyRepository.FlatHierarchyResult>> projects = initiativeData.stream()
+                .filter(r -> r.getProjectId() != null)
+                .collect(Collectors.groupingBy(StrategyRepository.FlatHierarchyResult::getProjectId));
+        return InitiativeHierarchyDto.builder()
+                .id(firstRecord.getInitiativeId())
+                .name(getTranslatedValue(firstRecord.getInitiativeName(), lang))
+                .projects(projects.values().stream().map(data -> buildProject(data.get(0), lang)).collect(Collectors.toList()))
+                .build();
+    }
+
+    private ProjectHierarchyDto buildProject(StrategyRepository.FlatHierarchyResult projectData, String lang) {
+        return ProjectHierarchyDto.builder()
+                .id(projectData.getProjectId())
+                .name(getTranslatedValue(projectData.getProjectName(), lang))
+                .build();
+    }
+
+    private String getTranslatedValue(String json, String lang) {
+        if (json == null || json.isEmpty()) return "Unknown";
+        try {
+            Map<String, String> translations = new ObjectMapper().readValue(json, new TypeReference<>() {});
+            return translations.getOrDefault(lang, translations.get("en"));
+        } catch (Exception e) {
+            log.error("Error parsing name_translations JSON: {}", json, e);
+            return "Unknown";
+        }
     }
 }

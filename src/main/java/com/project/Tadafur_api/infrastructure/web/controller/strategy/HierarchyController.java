@@ -61,4 +61,17 @@ public class HierarchyController {
         log.info("Received GET request for full hierarchy of strategy ID: {}", strategyId);
         return ResponseEntity.ok(hierarchyService.getFullHierarchy(strategyId, lang));
     }
+    @GetMapping("/v2/hierarchy")
+    @Operation(summary = "Get Full Strategy Hierarchy (High-Performance)",
+            description = "Retrieves strategies and their descendants using a fast, single-query approach.")
+    public ResponseEntity<List<StrategyHierarchyDto>> getFastFullHierarchy(
+            @Parameter(description = "Optional: The ID of the root strategy to fetch.")
+            @RequestParam(required = false) Long strategyId,
+            @Parameter(description = "Optional: The ID of an owner to filter projects by.")
+            @RequestParam(required = false) Long ownerId,
+            @Parameter(description = "Language code for translation.", example = "en")
+            @RequestParam(defaultValue = "en") String lang) {
+        log.info("Received GET request for FAST full hierarchy with strategyId: {} and ownerId: {}", strategyId, ownerId);
+        return ResponseEntity.ok(hierarchyService.getFastFullHierarchy(strategyId, ownerId, lang));
+    }
 }

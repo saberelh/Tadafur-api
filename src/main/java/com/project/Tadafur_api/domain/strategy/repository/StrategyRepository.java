@@ -67,4 +67,60 @@ public interface StrategyRepository extends JpaRepository<Strategy, Long> {
             @Param("strategyId") Long strategyId,
             @Param("ownerId") Long ownerId
     );
+    public interface FlatHierarchyResult {
+        Long getStrategyId();
+        String getStrategyName();
+        Long getPerspectiveId();
+        String getPerspectiveName();
+        Long getGoalId();
+        String getGoalName();
+        Long getProgramId();
+        String getProgramName();
+        Long getInitiativeId();
+        String getInitiativeName();
+        Long getProjectId();
+        String getProjectName();
+    }
+    @Query(value = """
+        SELECT
+            s.id AS "strategyId",
+            s.name_translations AS "strategyName",
+            p.id AS "perspectiveId",
+            p.name_translations AS "perspectiveName",
+            g.id AS "goalId",
+            g.name_translations AS "goalName",
+            prog.id AS "programId",
+            prog.name_translations AS "programName",
+            i.id AS "initiativeId",
+            i.name_translations AS "initiativeName",
+            proj.id AS "projectId",
+            proj.name_translations AS "projectName"
+        FROM
+            strategy s
+        LEFT JOIN
+            perspective p ON s.id = p.parent_id
+        LEFT JOIN
+            goal g ON p.id = g.parent_id
+        LEFT JOIN
+            program prog ON g.id = prog.parent_id
+        LEFT JOIN
+            initiative i ON prog.id = i.parent_id
+        LEFT JOIN
+            project proj ON i.id = proj.parent_id
+        WHERE
+            (:strategyId IS NULL OR s.id = :strategyId)
+            AND (
+                -- This subquery correctly filters the results for a specific owner
+                :ownerId IS NULL OR proj.id IN (
+                    SELECT p_filter.id FROM project p_filter WHERE p_filter.owner_id = :ownerId
+                )
+            )
+        ORDER BY
+            s.id, p.id, g.id, prog.id, i.id, proj.id
+    """, nativeQuery = true)
+    List<FlatHierarchyResult> getFlatHierarchy(
+            @Param("strategyId") Long strategyId,
+            @Param("ownerId") Long ownerId
+    );
+
 }
